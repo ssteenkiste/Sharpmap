@@ -234,7 +234,7 @@ namespace SharpMap.Rendering.Symbolizer
         /// </summary>
         /// <param name="pt">The point</param>
         /// <param name="g">The graphics object</param>
-        internal override void OnRenderInternal(PointF pt, Graphics g)
+        protected override void OnRenderInternal(PointF pt, Graphics g)
         {
             var f = new SizeF(pt);
             foreach (var pathDefinition in _paths)

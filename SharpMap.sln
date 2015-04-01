@@ -1,7 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-# SharpDevelop 5.0
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildTools", "BuildTools", "{8E57A35D-CD7B-4EEE-98BF-0E414F1A4E44}"
 	ProjectSection(SolutionItems) = preProject
 		BuildTools\NuGet.exe = BuildTools\NuGet.exe
@@ -21,7 +22,35 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MsSqlSpatialDemoDb", "MsSql
 		Examples\MsSqlSpatialDemoDb\SharpMapMsSqlSpatialDemoDb.bak = Examples\MsSqlSpatialDemoDb\SharpMapMsSqlSpatialDemoDb.bak
 	EndProjectSection
 EndProject
-Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "DemoWebSite", "Examples\DemoWebSite", "{32ECD993-CB5A-4AD9-8C8F-45C73A088C13}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{7F47E0CC-DB03-4E1F-B409-C861154D42C5}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\SharpMap-Dependencies.png = Docs\SharpMap-Dependencies.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{40C5E4D3-B4E8-4BF2-9580-D0A19BFBF1B5}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSBuild", "MSBuild", "{A5E400B4-8360-4259-BDDD-292A134D14CC}"
+	ProjectSection(SolutionItems) = preProject
+		SharpMap.Data.Providers.OracleSpatial.nuspec = SharpMap.Data.Providers.OracleSpatial.nuspec
+		SharpMap.Extensions.nuspec = SharpMap.Extensions.nuspec
+		SharpMap.Layers.HeatLayer.nuspec = SharpMap.Layers.HeatLayer.nuspec
+		SharpMap.nuspec = SharpMap.nuspec
+		SharpMap.proj = SharpMap.proj
+		SharpMap.UI.nuspec = SharpMap.UI.nuspec
+		SharpMap.Web.nuspec = SharpMap.Web.nuspec
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AEBB513B-1509-439F-BA86-FA9413BF8D8C}"
+	ProjectSection(SolutionItems) = preProject
+		Performance1.psess = Performance1.psess
+		SharpMap.sln.DotSettings = SharpMap.sln.DotSettings
+	EndProjectSection
+EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "DemoWebSite", "Examples\DemoWebSite\", "{32ECD993-CB5A-4AD9-8C8F-45C73A088C13}"
 	ProjectSection(WebsiteProperties) = preProject
 		SccProjectName = "Svn"
 		SccAuxPath = "Svn"
@@ -61,34 +90,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMap.Demo.Wms", "Examples\SharpMap.Demo.Wms\SharpMap.Demo.Wms.csproj", "{7EF67DF8-D868-4177-8817-4CC2E94ABD66}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPFSamples", "Examples\WPFSamples\WPFSamples.csproj", "{28AC314E-35C1-484B-9DD3-116BD8AFC4EA}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{7F47E0CC-DB03-4E1F-B409-C861154D42C5}"
-	ProjectSection(SolutionItems) = preProject
-		Docs\SharpMap-Dependencies.png = Docs\SharpMap-Dependencies.png
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{40C5E4D3-B4E8-4BF2-9580-D0A19BFBF1B5}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSBuild", "MSBuild", "{A5E400B4-8360-4259-BDDD-292A134D14CC}"
-	ProjectSection(SolutionItems) = preProject
-		SharpMap.Data.Providers.OracleSpatial.nuspec = SharpMap.Data.Providers.OracleSpatial.nuspec
-		SharpMap.Extensions.nuspec = SharpMap.Extensions.nuspec
-		SharpMap.Layers.HeatLayer.nuspec = SharpMap.Layers.HeatLayer.nuspec
-		SharpMap.nuspec = SharpMap.nuspec
-		SharpMap.proj = SharpMap.proj
-		SharpMap.UI.nuspec = SharpMap.UI.nuspec
-		SharpMap.Web.nuspec = SharpMap.Web.nuspec
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AEBB513B-1509-439F-BA86-FA9413BF8D8C}"
-	ProjectSection(SolutionItems) = preProject
-		Performance1.psess = Performance1.psess
-		SharpMap.sln.DotSettings = SharpMap.sln.DotSettings
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMap", "SharpMap\SharpMap.csproj", "{C83777FC-AABB-47D9-911F-D76255D4D541}"
 EndProject
@@ -517,10 +518,6 @@ Global
 		{723F9FD5-8424-4EEE-BA92-57ECEE0F395D}.ReleaseDSProjection|Mixed Platforms.Build.0 = Release|Any CPU
 		{723F9FD5-8424-4EEE-BA92-57ECEE0F395D}.ReleaseDSProjection|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(SubversionScc) = preSolution
-		Svn-Managed = True
-		Manager = AnkhSVN - Subversion Support for Visual Studio
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
@@ -533,5 +530,9 @@ Global
 		{A4184D38-C5A6-4E01-9D1C-8C63791AF825} = {480154D8-0960-416E-AE45-AF6B06794F77}
 		{7EF67DF8-D868-4177-8817-4CC2E94ABD66} = {480154D8-0960-416E-AE45-AF6B06794F77}
 		{28AC314E-35C1-484B-9DD3-116BD8AFC4EA} = {480154D8-0960-416E-AE45-AF6B06794F77}
+	EndGlobalSection
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
 	EndGlobalSection
 EndGlobal

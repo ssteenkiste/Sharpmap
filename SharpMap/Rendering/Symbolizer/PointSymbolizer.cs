@@ -120,7 +120,7 @@ namespace SharpMap.Rendering.Symbolizer
         /// </summary>
         /// <param name="pt">The point</param>
         /// <param name="g">The graphics object</param>
-        internal abstract void OnRenderInternal(PointF pt, Graphics g);
+        protected abstract void OnRenderInternal(PointF pt, Graphics g);
 
         /// <summary>
         /// Utility function to transform any <see cref="IPointSymbolizer"/> into an unscaled <see cref="RasterPointSymbolizer"/>. This may bring performance benefits.
