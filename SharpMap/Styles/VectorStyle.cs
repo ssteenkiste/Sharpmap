@@ -53,7 +53,7 @@ namespace SharpMap.Styles
         /// 
         /// </summary>
         /// <returns></returns>
-        public VectorStyle Clone()
+        public virtual VectorStyle Clone()
         {
             VectorStyle vs;
             lock (this)

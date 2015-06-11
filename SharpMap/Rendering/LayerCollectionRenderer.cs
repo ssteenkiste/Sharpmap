@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SharpMap.Layers;
 using SharpMap.Styles;
+using Common.Logging;
 
 namespace SharpMap.Rendering
 {
@@ -15,6 +16,8 @@ namespace SharpMap.Rendering
     /// </summary>
     public class LayerCollectionRenderer : IDisposable
     {
+
+        private static readonly ILog Logger = LogManager.GetLogger<LayerCollectionRenderer>();
         private readonly ILayer[] _layers;
         private Map _map;
 
@@ -90,7 +93,7 @@ namespace SharpMap.Rendering
                     double compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
                     if (layer.MaxVisible >= compare && layer.MinVisible < compare)
                     {
-                        layer.Render(g, _map);
+                        RenderLayer(layer, g, _map);
                     }
                 }
             }
@@ -101,7 +104,7 @@ namespace SharpMap.Rendering
             _images = new Image[_layers.Length];
 
             var res = Parallel.For(0, _layers.Length, RenderToImage);
-            
+
             var tmpTransform = g.Transform;
             g.Transform = new Matrix();
             if (res.IsCompleted)
@@ -124,7 +127,7 @@ namespace SharpMap.Rendering
                 return;
 
             var layer = _layers[layerIndex];
-            
+
             if (layer.Enabled)
             {
                 double compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
@@ -137,11 +140,41 @@ namespace SharpMap.Rendering
                         ApplyTransform(_transform, g);
 
                         g.Clear(Color.Transparent);
-                        layer.Render(g, _map);
+                        RenderLayer(layer, g, _map);
                     }
                 }
             }
         }
+
+        /// <summary>
+        /// Invokes the rendering of the layer, a red X is drawn if it fails.
+        /// </summary>
+        /// <param name="layer"></param>
+        /// <param name="g"></param>
+        /// <param name="map"></param>
+        public static void RenderLayer(ILayer layer, Graphics g, Map map)
+        {
+            try
+            {
+                layer.Render(g, map);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message, e);
+
+                using (var pen = new Pen(Color.Red, 4f))
+                {
+                    var size = map.Size;
+
+                    g.DrawLine(pen, 0, 0, size.Width, size.Height);
+                    g.DrawLine(pen, size.Width, 0, 0, size.Height);
+                    g.DrawRectangle(pen, 0, 0, size.Width, size.Height);
+                }
+
+            }
+        }
+
+
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         private static void ApplyTransform(Matrix transform, Graphics g)
@@ -155,7 +188,7 @@ namespace SharpMap.Rendering
             {
                 foreach (var image in _images)
                 {
-                    if (image != null)image.Dispose();
+                    if (image != null) image.Dispose();
                 }
             }
         }

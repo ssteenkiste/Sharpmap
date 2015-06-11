@@ -221,7 +221,7 @@ namespace SharpMap.Layers
         /// <param name="map">The map object</param>
         /// <param name="envelope">The envelope to render</param>
         /// <param name="theme">The theme to apply</param>
-        protected void RenderInternal(Graphics g, Map map, Envelope envelope, ITheme theme)
+        protected virtual void RenderInternal(Graphics g, Map map, Envelope envelope, ITheme theme)
         {
             var ds = new FeatureDataSet();
             lock (_dataSource)
@@ -323,7 +323,7 @@ namespace SharpMap.Layers
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map object</param>
         /// <param name="envelope">The envelope to render</param>
-        protected void RenderInternal(Graphics g, Map map, Envelope envelope)
+        protected virtual void RenderInternal(Graphics g, Map map, Envelope envelope)
         {
             //if style is not enabled, we don't need to render anything
             if (!Style.Enabled) return;
@@ -416,7 +416,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="style"></param>
         /// <returns></returns>
-        private static IEnumerable<IStyle> GetStylesToRender(IStyle style)
+        protected static IEnumerable<IStyle> GetStylesToRender(IStyle style)
         {
             IStyle[] stylesToRender = null;
             if (style is GroupStyle)
