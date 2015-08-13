@@ -11,6 +11,7 @@ using System.Net;
 using GeoAPI.Geometries;
 using System.ComponentModel;
 using Common.Logging;
+using SharpMap.Fetching;
 
 namespace SharpMap.Layers
 {
@@ -28,6 +29,7 @@ namespace SharpMap.Layers
 
         static readonly ILog Logger = LogManager.GetLogger(typeof(TileAsyncLayer));
         private readonly List<DownloadTask> _currentTasks = new List<DownloadTask>();
+        private readonly IFetchStrategy _strategy = new FetchStrategy();
 
         int _numPendingDownloads = 0;
         bool _onlyRedrawWhenComplete = false;
@@ -133,11 +135,11 @@ namespace SharpMap.Layers
             var bbox = map.Envelope;
             var extent = new Extent(bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY);
             var level = BruTile.Utilities.GetNearestLevel(_source.Schema.Resolutions, map.PixelSize);
-            var tiles = _source.Schema.GetTileInfos(extent, level);
+            var tiles = _strategy.GetTilesWanted(_source.Schema, extent, level); // _source.Schema.GetTileInfos(extent, level);
 
             //Abort previous running Threads
             Cancel();
-
+            
             using (var ia = new ImageAttributes())
             {
                 if (!_transparentColor.IsEmpty)
@@ -200,7 +202,7 @@ namespace SharpMap.Layers
                         lock (_currentTasks)
                         {
                             _currentTasks.Add(dt);
-                            _numPendingDownloads++;
+                            Interlocked.Increment(ref _numPendingDownloads);
                         }
                         t.Start();
                     }
@@ -277,8 +279,7 @@ namespace SharpMap.Layers
                     {
                         AddImageToFileCache(tileInfo, bitmap);
                     }
-
-
+                    
                     if (cancelToken.IsCancellationRequested)
                         cancelToken.ThrowIfCancellationRequested();
                     OnMapNewTileAvaliable(tileInfo, bitmap);

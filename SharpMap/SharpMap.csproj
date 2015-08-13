@@ -93,17 +93,17 @@
     <FileAlignment>4096</FileAlignment>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BruTile">
-      <HintPath>..\packages\BruTile.0.12.0\lib\net40\BruTile.dll</HintPath>
+    <Reference Include="BruTile, Version=0.13.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\EURISIS.Workbench\Src\Main\packages\BruTile.0.13.0\lib\net40\BruTile.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="BruTile.Desktop">
-      <HintPath>..\packages\BruTile.Desktop.0.12.0\lib\net40\BruTile.Desktop.dll</HintPath>
+    <Reference Include="BruTile.Desktop, Version=0.13.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\EURISIS.Workbench\Src\Main\packages\BruTile.Desktop.0.13.0\lib\net40\BruTile.Desktop.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="BruTile.MbTiles">
-      <HintPath>..\packages\BruTile.Desktop.0.12.0\lib\net40\BruTile.MbTiles.dll</HintPath>
-    </Reference>
-    <Reference Include="BruTile.Serialization">
-      <HintPath>..\packages\BruTile.Desktop.0.12.0\lib\net40\BruTile.Serialization.dll</HintPath>
+    <Reference Include="BruTile.MbTiles, Version=0.13.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\EURISIS.Workbench\Src\Main\packages\BruTile.Desktop.0.13.0\lib\net40\BruTile.MbTiles.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Common.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>..\packages\Common.Logging.2.0.0\lib\2.0\Common.Logging.dll</HintPath>
@@ -145,12 +145,6 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite">
-      <HintPath>..\packages\System.Data.SQLite.1.0.86.0\lib\net40\System.Data.SQLite.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Data.SQLite.Linq">
-      <HintPath>..\packages\System.Data.SQLite.1.0.86.0\lib\net40\System.Data.SQLite.Linq.dll</HintPath>
-    </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -200,6 +194,9 @@
     <Compile Include="Data\Providers\ShapeType.cs" />
     <Compile Include="Data\Providers\SqlServer2008.cs" />
     <Compile Include="Data\Providers\WFSClient.cs" />
+    <Compile Include="Fetching\FetchOnThread.cs" />
+    <Compile Include="Fetching\FetchStrategy.cs" />
+    <Compile Include="Fetching\IFetchStrategy.cs" />
     <Compile Include="Geometries\GeoAPIEx.cs" />
     <Compile Include="Layers\AsyncLayerProxyLayer.cs" />
     <Compile Include="Layers\DuplicateLayerException.cs" />
@@ -227,7 +224,6 @@
     <Compile Include="Map\MapViewportGuard.cs" />
     <Compile Include="Rendering\Decoration\Disclaimer.cs" />
     <Compile Include="Rendering\Decoration\EyeOfSight.cs" />
-    <Compile Include="Rendering\Decoration\GoogleMapsDisclamer.cs" />
     <Compile Include="Rendering\Decoration\IMapDecoration.cs" />
     <Compile Include="Rendering\Decoration\MapDecoration.cs" />
     <Compile Include="Rendering\Decoration\MapDecorationAnchor.cs" />
@@ -279,6 +275,7 @@
     <Compile Include="Rendering\Symbolizer\WarpedLineSymbolizer.cs" />
     <Compile Include="Rendering\Symbolizer\WarpPathToPath.cs" />
     <Compile Include="Styles\VectorStyle.cs" />
+    <Compile Include="Utilities\Algorithms.cs" />
     <Compile Include="Utilities\GeoSpatialMath.cs" />
     <Compile Include="Utilities\Indexing\BinaryTree.cs" />
     <Compile Include="Utilities\Indexing\SpatialIndexing.cs" />
@@ -451,7 +448,7 @@
     <Folder Include="Web\Wcs\1.0.0\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <!--<Import Project="$(SolutionDir)\.nuget\nuget.targets" />-->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
