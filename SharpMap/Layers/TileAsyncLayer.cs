@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -12,6 +13,7 @@ using GeoAPI.Geometries;
 using System.ComponentModel;
 using Common.Logging;
 using SharpMap.Fetching;
+using SharpMap.Utilities;
 
 namespace SharpMap.Layers
 {
@@ -42,7 +44,7 @@ namespace SharpMap.Layers
             get { return _onlyRedrawWhenComplete; }
             set { _onlyRedrawWhenComplete = value; }
         }
-        
+
         /// <summary>
         /// Returns the number of tiles that are in queue for download
         /// </summary>
@@ -53,7 +55,7 @@ namespace SharpMap.Layers
         /// </summary>
         public event DownloadProgressHandler DownloadProgressChanged;
 
-        
+
         /// <summary>
         /// Creates an instance of this class
         /// </summary>
@@ -99,7 +101,7 @@ namespace SharpMap.Layers
         /// <param name="fileCache">If the layer should use a file-cache so store tiles, set this to a fileCacheProvider. Set to null to avoid filecache</param>
         /// <param name="imgFormat">Set the format of the tiles to be used</param>
         public TileAsyncLayer(ITileSource tileSource, string layerName, Color transparentColor, bool showErrorInTile, FileCache fileCache, ImageFormat imgFormat)
-            : base(tileSource, layerName, transparentColor, showErrorInTile, fileCache,imgFormat)
+            : base(tileSource, layerName, transparentColor, showErrorInTile, fileCache, imgFormat)
         {
         }
 
@@ -135,11 +137,11 @@ namespace SharpMap.Layers
             var bbox = map.Envelope;
             var extent = new Extent(bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY);
             var level = BruTile.Utilities.GetNearestLevel(_source.Schema.Resolutions, map.PixelSize);
-            var tiles = _strategy.GetTilesWanted(_source.Schema, extent, level); // _source.Schema.GetTileInfos(extent, level);
-
+            //var tiles = _strategy.GetTilesWanted(_source.Schema, extent, level); // _source.Schema.GetTileInfos(extent, level);
+            var tiles = GetTilesWanted(_source.Schema, _bitmaps, _fileCache, extent, level);
             //Abort previous running Threads
             Cancel();
-            
+
             using (var ia = new ImageAttributes())
             {
                 if (!_transparentColor.IsEmpty)
@@ -150,14 +152,14 @@ namespace SharpMap.Layers
                 var tileWidth = _source.Schema.GetTileWidth(level);
                 var tileHeight = _source.Schema.GetTileHeight(level);
 
-                foreach (TileInfo info in tiles)
+                foreach (TileInfo info in tiles.OrderByDescending(t => _source.Schema.Resolutions[t.Index.Level].UnitsPerPixel))
                 {
                     if (_bitmaps.Find(info.Index) != null)
                     {
                         //draws directly the bitmap
                         var bb = new Envelope(new Coordinate(info.Extent.MinX, info.Extent.MinY),
                                               new Coordinate(info.Extent.MaxX, info.Extent.MaxY));
-                        HandleMapNewTileAvaliable(map, graphics, bb, _bitmaps.Find(info.Index), 
+                        HandleMapNewTileAvaliable(map, graphics, bb, _bitmaps.Find(info.Index),
                                                   tileWidth, tileHeight, ia);
                     }
                     else if (_fileCache != null && _fileCache.Exists(info.Index))
@@ -173,7 +175,7 @@ namespace SharpMap.Layers
                         HandleMapNewTileAvaliable(map, graphics, bb, _bitmaps.Find(info.Index),
                                                   tileWidth, tileHeight, ia);
                     }
-                    else
+                    else if (level == info.Index.Level)
                     {
                         var cancelToken = new CancellationTokenSource();
                         var token = cancelToken.Token;
@@ -183,7 +185,8 @@ namespace SharpMap.Layers
                         var t = new System.Threading.Tasks.Task(delegate
                         {
                             if (token.IsCancellationRequested)
-                                token.ThrowIfCancellationRequested();
+                                return;
+                            //token.ThrowIfCancellationRequested();
 
                             if (Logger.IsDebugEnabled)
                                 Logger.DebugFormat("Task started for download of tile {0},{1},{2}", info.Index.Level, info.Index.Col, info.Index.Row);
@@ -209,6 +212,59 @@ namespace SharpMap.Layers
                 }
             }
 
+        }
+
+        IList<TileInfo> GetTilesWanted(ITileSchema schema, MemoryCache<Bitmap> bitmaps, FileCache cache, Extent extent, string levelId)
+        {
+            var result = new List<TileInfo>();
+
+            // to improve performance, convert the resolutions to a list so they can be walked up by
+            // simply decrementing an index when the level index needs to change
+            var resolutions = schema.Resolutions.OrderByDescending(pair => pair.Value.UnitsPerPixel).ToList();
+            for (int i = 0; i < resolutions.Count; i++)
+            {
+                if (levelId == resolutions[i].Key)
+                {
+                    GetRecursiveTiles(result, schema, bitmaps, cache, extent, resolutions, i,true);
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        private static void GetRecursiveTiles(IList<TileInfo> result, ITileSchema schema, MemoryCache<Bitmap> bitmaps,
+            FileCache cache, Extent extent, IList<KeyValuePair<string, Resolution>> resolutions, int resolutionIndex, bool addAll)
+        {
+            if (resolutionIndex < 0 || resolutionIndex >= resolutions.Count)
+                return;
+
+            var tiles = schema.GetTileInfos(extent, resolutions[resolutionIndex].Key).OrderBy(
+                    t => Algorithms.Distance(extent.CenterX, extent.CenterY, t.Extent.CenterX, t.Extent.CenterY)); ;
+
+            foreach (var tileInfo in tiles)
+            {
+                //var feature = cache.Find(tileInfo.Index);
+                if (bitmaps.Find(tileInfo.Index) != null)
+                {
+                    result.Add(tileInfo);
+                }
+                else if (cache != null && cache.Exists(tileInfo.Index))
+                {
+                    result.Add(tileInfo);
+                }
+                else
+                    // only continue the recursive search if this tile is within the extent
+                    if (tileInfo.Extent.Intersects(extent))
+                {
+                    if (addAll)
+                    {
+                        result.Add(tileInfo);
+                    }
+                    GetRecursiveTiles(result, schema, bitmaps, cache, tileInfo.Extent.Intersect(extent), resolutions, resolutionIndex - 1,false);
+                }
+
+            }
         }
 
         static void HandleMapNewTileAvaliable(Map map, Graphics g, Envelope box, Bitmap bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
@@ -269,7 +325,8 @@ namespace SharpMap.Layers
 
                 bytes = tileProvider.GetTile(tileInfo);
                 if (cancelToken.IsCancellationRequested)
-                    cancelToken.ThrowIfCancellationRequested();
+                    return true;
+                //cancelToken.ThrowIfCancellationRequested();
 
                 using (var ms = new MemoryStream(bytes))
                 {
@@ -279,7 +336,7 @@ namespace SharpMap.Layers
                     {
                         AddImageToFileCache(tileInfo, bitmap);
                     }
-                    
+
                     if (cancelToken.IsCancellationRequested)
                         cancelToken.ThrowIfCancellationRequested();
                     OnMapNewTileAvaliable(tileInfo, bitmap);
@@ -290,7 +347,7 @@ namespace SharpMap.Layers
             {
                 if (Logger.IsDebugEnabled)
                     Logger.DebugFormat("Exception downloading tile {0},{1},{2} {3}", tileInfo.Index.Level, tileInfo.Index.Col, tileInfo.Index.Row, ex.Message);
-                
+
                 if (retry)
                 {
                     return GetTileOnThread(cancelToken, tileProvider, tileInfo, bitmaps, false);
