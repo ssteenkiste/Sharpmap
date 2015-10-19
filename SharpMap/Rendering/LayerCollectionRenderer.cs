@@ -130,14 +130,14 @@ namespace SharpMap.Rendering
 
             if (layer.Enabled)
             {
-                double compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
+                var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
                 if (layer.MaxVisible >= compare && layer.MinVisible < compare)
                 {
                     var image = _images[layerIndex] = new Bitmap(_map.Size.Width, _map.Size.Height, PixelFormat.Format32bppArgb);
                     using (var g = Graphics.FromImage(image))
                     {
                         g.PageUnit = GraphicsUnit.Pixel;
-                        ApplyTransform(_transform, g);
+                       // ApplyTransform(_transform, g);
 
                         g.Clear(Color.Transparent);
                         RenderLayer(layer, g, _map);
@@ -176,12 +176,15 @@ namespace SharpMap.Rendering
 
 
 
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        private static void ApplyTransform(Matrix transform, Graphics g)
-        {
-            g.Transform = transform.Clone();
-        }
+        //[MethodImpl(MethodImplOptions.Synchronized)]
+        //private static void ApplyTransform(Matrix transform, Graphics g)
+        //{
+        //    g.Transform = transform.Clone();
+        //}
 
+        /// <summary>
+        /// Clean up resources.
+        /// </summary>
         public void Dispose()
         {
             if (_images != null)

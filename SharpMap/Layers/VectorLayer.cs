@@ -295,7 +295,7 @@ namespace SharpMap.Layers
                     if (!(style.MinVisible <= compare && compare <= style.MaxVisible)) continue;
 
 
-                    IEnumerable<IStyle> stylesToRender = GetStylesToRender(style);
+                    var stylesToRender = GetStylesToRender(style);
 
                     if (stylesToRender == null)
                         return;
