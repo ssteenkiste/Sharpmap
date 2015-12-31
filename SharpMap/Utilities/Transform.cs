@@ -34,9 +34,7 @@ namespace SharpMap.Utilities
         /// <returns>Point in image coordinates</returns>
         public static PointF WorldtoMap(Coordinate p, Map map)
         {
-            //if (map.MapTransform != null && !map.MapTransform.IsIdentity)
-            //	map.MapTransform.TransformPoints(new System.Drawing.PointF[] { p });
-            if (p.IsEmpty())
+             if (p.IsEmpty())
                 return PointF.Empty;
 
             var result = new PointF();

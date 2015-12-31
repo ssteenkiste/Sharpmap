@@ -39,6 +39,8 @@ using Point = GeoAPI.Geometries.Coordinate;
 using System.Drawing.Imaging;
 using Common.Logging;
 using System.Reflection;
+using System.Threading;
+using SharpMap.Fetching;
 
 namespace SharpMap
 {
@@ -87,10 +89,10 @@ namespace SharpMap
                     throw new InvalidOperationException();
                 }
             }
-            
+
             // The following code did not seem to work in all cases.
-            /*            
-            if (System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Designtime)
+
+            if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
             {
                 _logger.Debug("In design mode");
                 Trace.WriteLine("In design mode");
@@ -126,7 +128,7 @@ namespace SharpMap
                 _logger.Debug("Exiting design mode handling");
                 Trace.WriteLine("Exiting design mode handling");
             }
-             */
+
         }
 
         static readonly ILog _logger = LogManager.GetLogger(typeof(Map));
@@ -142,18 +144,18 @@ namespace SharpMap
         private Color _backgroundColor;
         private int _srid = -1;
         private double _zoom;
-        private Point _center;
+        private Point _center ;
         private readonly LayerCollection _layers;
         private readonly LayerCollection _backgroundLayers;
         private readonly VariableLayerCollection _variableLayers;
+
         private Matrix _mapTransform;
-        internal Matrix MapTransformInverted;
-        
+        private Matrix _mapTransformInverted;
+
         private readonly MapViewPortGuard _mapViewportGuard;
         private readonly Dictionary<object, List<ILayer>> _layersPerGroup = new Dictionary<object, List<ILayer>>();
         private ObservableCollection<ILayer> _replacingCollection;
         #endregion
-
 
         /// <summary>
         /// Specifies whether to trigger a dispose on all layers (and their datasources) contained in this map when the map-object is disposed.
@@ -177,7 +179,7 @@ namespace SharpMap
         /// <param name="size">Size of map in pixels</param>
         public Map(Size size)
         {
-            _mapViewportGuard = new MapViewPortGuard(size, 0d, Double.MaxValue);
+            _mapViewportGuard = new MapViewPortGuard(size, 0d, double.MaxValue);
 
             if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
             {
@@ -191,7 +193,7 @@ namespace SharpMap
             _layersPerGroup.Add(_variableLayers, new List<ILayer>());
             BackColor = Color.Transparent;
             _mapTransform = new Matrix();
-            MapTransformInverted = new Matrix();
+            _mapTransformInverted = new Matrix();
             _center = new Point(0, 0);
             _zoom = 1;
 
@@ -228,12 +230,12 @@ namespace SharpMap
             {
                 IterWireEvents(sender, e.NewItems.Cast<ILayer>());
             }
-            
+
         }
 
         private void IterWireEvents(object owner, IEnumerable<ILayer> layers)
         {
-            foreach(var layer in layers)
+            foreach (var layer in layers)
             {
                 _layersPerGroup[owner].Add(layer);
 
@@ -243,11 +245,17 @@ namespace SharpMap
                     WireTileAsyncEvents(tileAsyncLayer);
                 }
 
+                var asyncLayer = layer as IAsyncDataFetcher;
+                if (asyncLayer != null)
+                {
+                    WireAsyncEvents(asyncLayer);
+                }
+
                 var group = layer as LayerGroup;
                 if (group != null)
                 {
-                    group.LayersChanging += OnLayerGroupCollectionReplaching;
-                    group.LayersChanged += OnLayerGroupCollectionReplached;
+                    group.LayersChanging += OnLayerGroupCollectionReplacing;
+                    group.LayersChanged += OnLayerGroupCollectionReplaced;
 
                     var nestedList = group.Layers;
                     if (group.Layers != null)
@@ -279,11 +287,17 @@ namespace SharpMap
                     UnhookTileAsyncEvents(tileAsyncLayer);
                 }
 
+                var asyncLayer = layer as IAsyncDataFetcher;
+                if (asyncLayer != null)
+                {
+                    UnhookAsyncEvents(asyncLayer);
+                }
+
                 var group = layer as LayerGroup;
                 if (group != null)
                 {
-                    group.LayersChanging -= OnLayerGroupCollectionReplaching;
-                    group.LayersChanged -= OnLayerGroupCollectionReplached;
+                    group.LayersChanging -= OnLayerGroupCollectionReplacing;
+                    group.LayersChanged -= OnLayerGroupCollectionReplaced;
 
                     var nestedList = group.Layers;
 
@@ -301,8 +315,8 @@ namespace SharpMap
             var clonedList = _layersPerGroup[owner];
             toBeRemoved.ForEach(layer => clonedList.Remove(layer));
         }
-        
-        private void OnLayerGroupCollectionReplached(object sender, EventArgs eventArgs)
+
+        private void OnLayerGroupCollectionReplaced(object sender, EventArgs eventArgs)
         {
             var layerGroup = (LayerGroup)sender;
 
@@ -322,9 +336,9 @@ namespace SharpMap
             }
         }
 
-        private void OnLayerGroupCollectionReplaching(object sender, EventArgs eventArgs)
+        private void OnLayerGroupCollectionReplacing(object sender, EventArgs eventArgs)
         {
-            var layerGroup = (LayerGroup) sender;
+            var layerGroup = (LayerGroup)sender;
 
             _replacingCollection = layerGroup.Layers;
         }
@@ -351,10 +365,26 @@ namespace SharpMap
 
         private void UnhookTileAsyncEvents(ITileAsyncLayer tileAsyncLayer)
         {
+
             tileAsyncLayer.DownloadProgressChanged -= layer_DownloadProgressChanged;
             tileAsyncLayer.MapNewTileAvaliable -= MapNewTileAvaliableHandler;
         }
 
+        private void WireAsyncEvents(IAsyncDataFetcher asyncLayer)
+        {
+            asyncLayer.DataChanged += AsyncLayer_DataChanged;
+        }
+
+        private void UnhookAsyncEvents(IAsyncDataFetcher asyncLayer)
+        {
+            asyncLayer.DataChanged -= AsyncLayer_DataChanged;
+        }
+
+        private void AsyncLayer_DataChanged(object sender, DataChangedEventArgs e)
+        {
+            if (DataChanged != null)
+                DataChanged(this, e);
+        }
 
         #region IDisposable Members
 
@@ -367,21 +397,21 @@ namespace SharpMap
             {
                 if (Layers != null)
                 {
-                    foreach (IDisposable disposable in Layers.OfType<IDisposable>())
+                    foreach (var disposable in Layers.OfType<IDisposable>())
                     {
                         disposable.Dispose();
                     }
                 }
                 if (BackgroundLayer != null)
                 {
-                    foreach (IDisposable disposable in BackgroundLayer.OfType<IDisposable>())
+                    foreach (var disposable in BackgroundLayer.OfType<IDisposable>())
                     {
                         disposable.Dispose();
                     }
                 }
                 if (VariableLayers != null)
                 {
-                    foreach (IDisposable layer in VariableLayers.OfType<IDisposable>())
+                    foreach (var layer in VariableLayers.OfType<IDisposable>())
                         layer.Dispose();
                 }
             }
@@ -442,7 +472,6 @@ namespace SharpMap
         /// </summary>
         public event MapViewChangedHandler MapViewOnChange;
 
-
         /// <summary>
         /// Event fired when all layers are about to be rendered
         /// </summary>
@@ -469,6 +498,9 @@ namespace SharpMap
         [Obsolete("Use LayerRenderedEx")]
         public event EventHandler LayerRendered;
 
+        public event EventHandler<DataChangedEventArgs> DataChanged;
+
+
         /// <summary>
         /// Event fired when a new Tile is available in a TileAsyncLayer
         /// </summary>
@@ -490,7 +522,7 @@ namespace SharpMap
         public Image GetMap()
         {
             Image img = new Bitmap(Size.Width, Size.Height);
-            Graphics g = Graphics.FromImage(img);
+            var g = Graphics.FromImage(img);
             RenderMap(g);
             g.Dispose();
             return img;
@@ -505,7 +537,7 @@ namespace SharpMap
         {
             Image img = new Bitmap(Size.Width, Size.Height);
             ((Bitmap)img).SetResolution(resolution, resolution);
-            Graphics g = Graphics.FromImage(img);
+            var g = Graphics.FromImage(img);
             RenderMap(g);
             g.Dispose();
             return img;
@@ -522,7 +554,7 @@ namespace SharpMap
         /// <returns>The current map rendered as to a Metafile</returns>
         public Metafile GetMapAsMetafile()
         {
-            return GetMapAsMetafile(String.Empty);
+            return GetMapAsMetafile(string.Empty);
         }
 
         /// <summary>
@@ -540,28 +572,28 @@ namespace SharpMap
             var bm = new Bitmap(1, 1);
             using (var g = Graphics.FromImage(bm))
             {
-                 var hdc = g.GetHdc();
-                 using (var stream = new MemoryStream())
-                 {
-                     metafile = new Metafile(stream, hdc, new RectangleF(0, 0, Size.Width, Size.Height),
-                                             MetafileFrameUnit.Pixel, EmfType.EmfPlusDual);
+                var hdc = g.GetHdc();
+                using (var stream = new MemoryStream())
+                {
+                    metafile = new Metafile(stream, hdc, new RectangleF(0, 0, Size.Width, Size.Height),
+                                            MetafileFrameUnit.Pixel, EmfType.EmfPlusDual);
 
-                     using (var metafileGraphics = Graphics.FromImage(metafile))
-                     {
-                         metafileGraphics.PageUnit = GraphicsUnit.Pixel;
-                         metafileGraphics.TransformPoints(CoordinateSpace.Page, CoordinateSpace.Device,
-                                                          new[] {new PointF(Size.Width, Size.Height)});
+                    using (var metafileGraphics = Graphics.FromImage(metafile))
+                    {
+                        metafileGraphics.PageUnit = GraphicsUnit.Pixel;
+                        metafileGraphics.TransformPoints(CoordinateSpace.Page, CoordinateSpace.Device,
+                                                         new[] { new PointF(Size.Width, Size.Height) });
 
-                         //Render map to metafile
-                         RenderMap(metafileGraphics);
-                     }
+                        //Render map to metafile
+                        RenderMap(metafileGraphics);
+                    }
 
-                     //Save metafile if desired
-                     if (!String.IsNullOrEmpty(metafileName))
-                         File.WriteAllBytes(metafileName, stream.ToArray());
-                 }
+                    //Save metafile if desired
+                    if (!string.IsNullOrEmpty(metafileName))
+                        File.WriteAllBytes(metafileName, stream.ToArray());
+                }
                 g.ReleaseHdc(hdc);
-             }
+            }
             return metafile;
         }
 
@@ -574,12 +606,26 @@ namespace SharpMap
         /// <param name="sourceWidth"></param>
         /// <param name="sourceHeight"></param>
         /// <param name="imageAttributes"></param>
-        public void MapNewTileAvaliableHandler(TileLayer sender, Envelope bbox, Bitmap bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
+        public void MapNewTileAvaliableHandler(ITileAsyncLayer sender, Envelope bbox, Bitmap bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
         {
             var e = MapNewTileAvaliable;
             if (e != null)
-                e(sender, bbox, bm,sourceWidth,sourceHeight,imageAttributes);
+                e(sender, bbox, bm, sourceWidth, sourceHeight, imageAttributes);
         }
+
+
+        /// <summary>
+        /// Fires the RefreshNeeded event.
+        /// </summary>
+        /// <param name="e">EventArgs argument.</param>
+        protected virtual void OnRefreshNeeded(EventArgs e)
+        {
+            var handler = RefreshNeeded;
+            if (handler != null)
+                handler(this, e);
+        }
+
+        #region Rendering
 
         /// <summary>
         /// Renders the map using the provided <see cref="Graphics"/> object.
@@ -607,21 +653,21 @@ namespace SharpMap
             g.Clear(BackColor);
             g.PageUnit = GraphicsUnit.Pixel;
 
-            double zoom = Zoom;
-            double scale = double.NaN; //will be resolved if needed
+            var zoom = Zoom;
+            var scale = double.NaN; //will be resolved if needed
 
             ILayer[] layerList;
             if (_backgroundLayers != null && _backgroundLayers.Count > 0)
             {
                 layerList = new ILayer[_backgroundLayers.Count];
                 _backgroundLayers.CopyTo(layerList, 0);
-                foreach (ILayer layer in layerList)
+                foreach (var layer in layerList)
                 {
                     if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
                     {
                         scale = MapScale;
                     }
-                    double visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
+                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
 
                     OnLayerRendering(layer, LayerCollectionType.Background);
                     if (layer.Enabled)
@@ -641,13 +687,13 @@ namespace SharpMap
                 _layers.CopyTo(layerList, 0);
 
                 //int srid = (Layers.Count > 0 ? Layers[0].SRID : -1); //Get the SRID of the first layer
-                foreach (ILayer layer in layerList)
+                foreach (var layer in layerList)
                 {
                     if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
                     {
                         scale = MapScale;
                     }
-                    double visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
+                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
                     OnLayerRendering(layer, LayerCollectionType.Static);
 
                     if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
@@ -661,13 +707,13 @@ namespace SharpMap
             {
                 layerList = new ILayer[_variableLayers.Count];
                 _variableLayers.CopyTo(layerList, 0);
-                foreach (ILayer layer in layerList)
+                foreach (var layer in layerList)
                 {
                     if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
                     {
                         scale = MapScale;
                     }
-                    double visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
+                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
                     if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                 }
@@ -686,17 +732,6 @@ namespace SharpMap
             VariableLayerCollection.Pause = false;
 
             OnMapRendered(g);
-        }
-
-        /// <summary>
-        /// Fires the RefreshNeeded event.
-        /// </summary>
-        /// <param name="e">EventArgs argument.</param>
-        protected virtual void OnRefreshNeeded(EventArgs e)
-        {
-            var handler = RefreshNeeded;
-            if (handler != null)
-                handler(this, e);
         }
 
         /// <summary>
@@ -797,13 +832,14 @@ namespace SharpMap
                     break;
             }
 
-            if (lc== null || lc.Count == 0)
+            if (lc == null || lc.Count == 0)
                 throw new InvalidOperationException("No layers to render");
 
-            Matrix transform = g.Transform;
+            var transform = g.Transform;
+            var newTransform = MapTransform.Clone();
             lock (MapTransform)
             {
-                g.Transform = MapTransform.Clone();
+                g.Transform = newTransform;
             }
             if (!drawTransparent)
                 g.Clear(BackColor);
@@ -811,25 +847,10 @@ namespace SharpMap
             g.PageUnit = GraphicsUnit.Pixel;
 
             //LayerCollectionRenderer.AllowParallel = layerCollectionType == LayerCollectionType.Static;
-            using (var lcr = new LayerCollectionRenderer(lc))
+            using (var lcr = new LayerCollectionRenderer(lc, newTransform))
             {
                 lcr.Render(g, this, layerCollectionType == LayerCollectionType.Static);
             }
-
-            /*
-            var layerList = new ILayer[lc.Count];
-            lc.CopyTo(layerList, 0);
-
-            foreach (ILayer layer in layerList)
-            {
-                if (layer.Enabled && layer.MaxVisible >= Zoom && layer.MinVisible < Zoom)
-                    layer.Render(g, this);
-            }
-
-             */
-
-            if (drawTransparent)
-                
 
             g.Transform = transform;
             if (layerCollectionType == LayerCollectionType.Static)
@@ -846,11 +867,48 @@ namespace SharpMap
                 }
             }
 
-
-
             VariableLayerCollection.Pause = false;
 
         }
+        [Obsolete]
+        private void RenderDisclaimer(Graphics g)
+        {
+            //Disclaimer
+            if (!string.IsNullOrEmpty(_disclaimer))
+            {
+                var size = VectorRenderer.SizeOfString(g, _disclaimer, _disclaimerFont);
+                size.Width = (float)Math.Ceiling(size.Width);
+                size.Height = (float)Math.Ceiling(size.Height);
+                StringFormat sf;
+                switch (DisclaimerLocation)
+                {
+                    case 0: //Right-Bottom
+                        sf = new StringFormat();
+                        sf.Alignment = StringAlignment.Far;
+                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
+                            g.VisibleClipBounds.Width,
+                            g.VisibleClipBounds.Height - size.Height - 2, sf);
+                        break;
+                    case 1: //Right-Top
+                        sf = new StringFormat();
+                        sf.Alignment = StringAlignment.Far;
+                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
+                            g.VisibleClipBounds.Width, 0f, sf);
+                        break;
+                    case 2: //Left-Top
+                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f, 0f);
+                        break;
+                    case 3://Left-Bottom
+                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f,
+                            g.VisibleClipBounds.Height - size.Height - 2);
+                        break;
+                }
+            }
+        }
+
+        #endregion
+
+
 
         /// <summary>
         /// Returns a cloned copy of this map-object.
@@ -894,7 +952,7 @@ namespace SharpMap
             if (BackgroundLayer != null)
                 clone.BackgroundLayer.AddCollection(BackgroundLayer.Clone());
 
-            for (int i = 0; i < Decorations.Count; i++)
+            for (var i = 0; i < Decorations.Count; i++)
                 clone.Decorations.Add(Decorations[i]);
 
             if (Layers != null)
@@ -906,42 +964,9 @@ namespace SharpMap
             return clone;
         }
 
-        [Obsolete]
-        private void RenderDisclaimer(Graphics g)
-        {
-            //Disclaimer
-            if (!String.IsNullOrEmpty(_disclaimer))
-            {
-                var size = VectorRenderer.SizeOfString(g, _disclaimer, _disclaimerFont);
-                size.Width = (Single)Math.Ceiling(size.Width);
-                size.Height = (Single)Math.Ceiling(size.Height);
-                StringFormat sf;
-                switch (DisclaimerLocation)
-                {
-                    case 0: //Right-Bottom
-                        sf = new StringFormat();
-                        sf.Alignment = StringAlignment.Far;
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
-                            g.VisibleClipBounds.Width,
-                            g.VisibleClipBounds.Height - size.Height - 2, sf);
-                        break;
-                    case 1: //Right-Top
-                        sf = new StringFormat();
-                        sf.Alignment = StringAlignment.Far;
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
-                            g.VisibleClipBounds.Width, 0f, sf);
-                        break;
-                    case 2: //Left-Top
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f, 0f);
-                        break;
-                    case 3://Left-Bottom
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f,
-                            g.VisibleClipBounds.Height - size.Height - 2);
-                        break;
-                }
-            }
-        }
 
+
+        #region Layer
         /// <summary>
         /// Returns an enumerable for all layers containing the search parameter in the LayerName property
         /// </summary>
@@ -959,7 +984,7 @@ namespace SharpMap
         /// <returns>Layer</returns>
         public ILayer GetLayerByName(string name)
         {
-            ILayer lay  = null;
+            ILayer lay = null;
             if (Layers != null)
             {
                 lay = Layers.GetLayerByName(name);
@@ -975,6 +1000,10 @@ namespace SharpMap
 
             return lay;
         }
+
+        #endregion
+
+        #region ViewPort
 
         /// <summary>
         /// Zooms to the extents of all layers
@@ -1022,8 +1051,8 @@ namespace SharpMap
                     changed = true;
                 }
 
-                if (changed && MapViewOnChange != null)
-                    MapViewOnChange();
+                if (changed)
+                    OnMapViewChanged();
             }
         }
 
@@ -1037,13 +1066,16 @@ namespace SharpMap
         public PointF WorldToImage(Coordinate p, bool careAboutMapTransform)
         {
             var pTmp = Transform.WorldtoMap(p, this);
-            lock (MapTransform)
+            if (careAboutMapTransform)
             {
-                if (careAboutMapTransform && !MapTransform.IsIdentity)
+                lock (MapTransform)
                 {
-                    var pts = new[] { pTmp };
-                    MapTransform.TransformPoints(pts);
-                    pTmp = pts[0];
+                    if (!MapTransform.IsIdentity)
+                    {
+                        var pts = new[] { pTmp };
+                        MapTransform.TransformPoints(pts);
+                        pTmp = pts[0];
+                    }
                 }
             }
             return pTmp;
@@ -1079,17 +1111,22 @@ namespace SharpMap
         /// <returns>Point in world coordinates</returns>
         public Point ImageToWorld(PointF p, bool careAboutMapTransform)
         {
-            lock (MapTransform)
+            if (careAboutMapTransform)
             {
-                if (careAboutMapTransform && !MapTransform.IsIdentity)
+                lock (MapTransform)
                 {
-                    var pts = new[] { p };
-                    MapTransformInverted.TransformPoints(pts);
-                    p = pts[0];
+                    if (!MapTransform.IsIdentity)
+                    {
+                        var pts = new[] { p };
+                        _mapTransformInverted.TransformPoints(pts);
+                        p = pts[0];
+                    }
                 }
             }
             return Transform.MapToWorld(p, this);
         }
+
+        #endregion
 
         #endregion
 
@@ -1135,7 +1172,7 @@ namespace SharpMap
 
                 var ll = new Coordinate(Center.X - Zoom * .5, Center.Y - MapHeight * .5);
                 var ur = new Coordinate(Center.X + Zoom * .5, Center.Y + MapHeight * .5);
-                
+
                 var ptfll = WorldToImage(ll, true);
                 ptfll = new PointF(Math.Abs(ptfll.X), Math.Abs(Size.Height - ptfll.Y));
                 if (!ptfll.IsEmpty)
@@ -1145,7 +1182,7 @@ namespace SharpMap
                     ur.X = ur.X + ptfll.X * PixelWidth;
                     ur.Y = ur.Y + ptfll.Y * PixelHeight;
                 }
-                return new Envelope(ll, ur);    
+                return new Envelope(ll, ur);
             }
         }
 
@@ -1169,11 +1206,11 @@ namespace SharpMap
                 _mapTransform = value;
                 if (_mapTransform.IsInvertible)
                 {
-                    MapTransformInverted = value.Clone();
-                    MapTransformInverted.Invert();
+                    _mapTransformInverted = value.Clone();
+                    _mapTransformInverted.Invert();
                 }
                 else
-                    MapTransformInverted.Reset();
+                    _mapTransformInverted.Reset();
             }
         }
 
@@ -1210,8 +1247,7 @@ namespace SharpMap
             set
             {
                 _backgroundColor = value;
-                if (MapViewOnChange != null)
-                    MapViewOnChange();
+                OnMapViewChanged();
             }
         }
 
@@ -1243,11 +1279,60 @@ namespace SharpMap
                     _center = newCenter;
                     changed = true;
                 }
-                
-                if (changed && MapViewOnChange != null)
-                    MapViewOnChange();
+
+                if (changed)
+                    OnMapViewChanged();
             }
         }
+
+        protected void OnMapViewChanged()
+        {
+
+            LoadDatas();
+
+            if (MapViewOnChange != null)
+            {
+                MapViewOnChange();
+            }
+        }
+
+        private void LoadDatas()
+        {
+            foreach (var l in Layers.ToList().OfType<Layer>())
+            {
+                l.LoadDatas(this);
+            }
+        }
+
+        protected bool IsFetching;
+        protected bool NeedsUpdate = true;
+        protected Envelope NewEnvelope;
+        public int FetchingPostponedInMilliseconds { get { return 500; } }
+        protected Timer StartFetchTimer;
+
+        void FetchDatas()
+        {
+            if (_center == null)
+                return;
+
+            NewEnvelope = Envelope;
+            if (IsFetching)
+            {
+                NeedsUpdate = true;
+                return;
+            }
+
+            if (StartFetchTimer != null) StartFetchTimer.Dispose();
+            StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
+        }
+
+        void StartFetchTimerElapsed(object state)
+        {
+            if (NewEnvelope == null) return;
+            LoadDatas();
+            StartFetchTimer.Dispose();
+        }
+
 
         private static int? _dpiX;
 
@@ -1262,7 +1347,7 @@ namespace SharpMap
                 {
                     using (var g = Graphics.FromHwnd(IntPtr.Zero))
                     {
-                        _dpiX = (int) g.DpiX;
+                        _dpiX = (int)g.DpiX;
                     }
                 }
 
@@ -1274,7 +1359,7 @@ namespace SharpMap
                 {
                     using (var g = Graphics.FromHwnd(IntPtr.Zero))
                     {
-                        _dpiX = (int) g.DpiX;
+                        _dpiX = (int)g.DpiX;
                     }
                 }
                 Zoom = GetMapZoomFromScale(value, _dpiX.Value);
@@ -1325,8 +1410,7 @@ namespace SharpMap
                 if (!newCenter.Equals2D(_center))
                     _center = newCenter;
 
-                if (MapViewOnChange != null)
-                    MapViewOnChange();
+                OnMapViewChanged();
             }
         }
 
@@ -1335,7 +1419,7 @@ namespace SharpMap
         /// </summary>
         public double PixelSize
         {
-            get { return Zoom/Size.Width; }
+            get { return Zoom / Size.Width; }
         }
 
         /// <summary>
@@ -1376,7 +1460,7 @@ namespace SharpMap
         /// <returns></returns>
         public double MapHeight
         {
-            get { return (Zoom*Size.Height)/Size.Width*PixelAspectRatio; }
+            get { return (Zoom * Size.Height) / Size.Width * PixelAspectRatio; }
         }
 
         /// <summary>
@@ -1457,7 +1541,7 @@ namespace SharpMap
         {
             foreach (var l in layersCollection)
             {
-                
+
                 //Tries to get bb. Fails on some specific shapes and Mercator projects (World.shp)
                 Envelope bb;
                 try
@@ -1485,17 +1569,18 @@ namespace SharpMap
 
         #region Disclaimer
 
-        private String _disclaimer;
+        private string _disclaimer;
         /// <summary>
         /// Copyright notice to be placed on the map
         /// </summary>
         [Obsolete("Use Disclaimer as MapDecoration instead!")]
-        public String Disclaimer
+        public string Disclaimer
         {
             get { return _disclaimer; }
-            set {
+            set
+            {
                 //only set disclaimer if not already done
-                if (String.IsNullOrEmpty(_disclaimer))
+                if (string.IsNullOrEmpty(_disclaimer))
                 {
                     _disclaimer = value;
                     //Ensure that Font for disclaimer is set
@@ -1503,7 +1588,7 @@ namespace SharpMap
                         _disclaimerFont = new Font(FontFamily.GenericSansSerif, 8f);
                 }
             }
-        }        
+        }
 
         private Font _disclaimerFont;
         /// <summary>
@@ -1520,7 +1605,7 @@ namespace SharpMap
             }
         }
 
-        private Int32 _disclaimerLocation;
+        private int _disclaimerLocation;
 
         /// <summary>
         /// Location for the disclaimer
@@ -1529,41 +1614,13 @@ namespace SharpMap
         /// 3|0
         /// </summary>
         [Obsolete("Use Disclaimer as MapDecoration instead!")]
-        public Int32 DisclaimerLocation
+        public int DisclaimerLocation
         {
             get { return _disclaimerLocation; }
-            set { _disclaimerLocation = value%4; }
+            set { _disclaimerLocation = value % 4; }
         }
 
 
         #endregion
     }
-
-    /// <summary>
-    /// Layer rendering event arguments class
-    /// </summary>
-    public class LayerRenderingEventArgs : EventArgs
-    {
-        /// <summary>
-        /// The layer that is being or has been rendered
-        /// </summary>
-        public readonly ILayer Layer;
-
-        /// <summary>
-        /// The layer collection type the layer belongs to.
-        /// </summary>
-        public readonly LayerCollectionType LayerCollectionType;
-
-        /// <summary>
-        /// Creates an instance of this class
-        /// </summary>
-        /// <param name="layer">The layer that is being or has been rendered</param>
-        /// <param name="layerCollectionType">The layer collection type the layer belongs to.</param>
-        public LayerRenderingEventArgs(ILayer layer, LayerCollectionType layerCollectionType)
-        {
-            Layer = layer;
-            LayerCollectionType = layerCollectionType;
-        }
-    }
-
 }

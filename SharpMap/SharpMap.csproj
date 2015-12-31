@@ -194,8 +194,10 @@
     <Compile Include="Data\Providers\ShapeType.cs" />
     <Compile Include="Data\Providers\SqlServer2008.cs" />
     <Compile Include="Data\Providers\WFSClient.cs" />
+    <Compile Include="Fetching\FeaturesFetcher.cs" />
     <Compile Include="Fetching\FetchOnThread.cs" />
     <Compile Include="Fetching\FetchStrategy.cs" />
+    <Compile Include="Fetching\IAsyncDataFetcher.cs" />
     <Compile Include="Fetching\IFetchStrategy.cs" />
     <Compile Include="Geometries\GeoAPIEx.cs" />
     <Compile Include="Layers\AsyncLayerProxyLayer.cs" />
@@ -219,6 +221,11 @@
     <Compile Include="Layers\TileLayer.cs" />
     <Compile Include="Layers\VariableLayerCollection.cs" />
     <Compile Include="Layers\VectorLayer.cs" />
+    <Compile Include="Rendering\LayerRenderingEventArgs.cs" />
+    <Compile Include="Map\MapViewPort.cs" />
+    <Compile Include="Rendering\IMapRenderer.cs" />
+    <Compile Include="Rendering\MapRenderingResult.cs" />
+    <Compile Include="Rendering\Thematics\FontSizeTheme.cs" />
     <Compile Include="Styles\VisibilityUnits.cs" />
     <Compile Include="Layers\WmsLayer.cs" />
     <Compile Include="Map\MapViewportGuard.cs" />

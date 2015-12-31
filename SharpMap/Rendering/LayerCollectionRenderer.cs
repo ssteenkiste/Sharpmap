@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SharpMap.Layers;
@@ -29,10 +30,11 @@ namespace SharpMap.Rendering
         /// Creates an instance of this class
         /// </summary>
         /// <param name="layers">The layer collection to render</param>
-        public LayerCollectionRenderer(ICollection<ILayer> layers)
+        public LayerCollectionRenderer(ICollection<ILayer> layers, Matrix transform)
         {
             _layers = new ILayer[layers.Count];
             layers.CopyTo(_layers, 0);
+            _transform = transform;
         }
 
         /// <summary>
@@ -45,22 +47,23 @@ namespace SharpMap.Rendering
         public void Render(Graphics g, Map map, bool allowParallel)
         {
             _map = map;
-            _transform = _map.MapTransform;
+            
             g.PageUnit = GraphicsUnit.Pixel;
+
             if (AllowParallel && allowParallel && ParallelHeuristic(map.Size, g.DpiX, _layers.Length))
             {
                 RenderParellel(g);
             }
             else
             {
-                RenderSequenial(g);
+                RenderSequential(g);
             }
         }
 
         /// <summary>
         /// Method to determine the synchronization method
         /// </summary>
-        public static Func<Size, float, int, bool> ParallelHeuristic
+        private static Func<Size, float, int, bool> ParallelHeuristic
         {
             get { return _parallelHeuristic ?? StdHeuristic; }
             set { _parallelHeuristic = value; }
@@ -83,19 +86,16 @@ namespace SharpMap.Rendering
             return (size.Width < 1920 && size.Height <= 1920 && numLayers < 100);
         }
 
-        private void RenderSequenial(Graphics g)
+        private void RenderSequential(Graphics g)
         {
-            for (var layerIndex = 0; layerIndex < _layers.Length; layerIndex++)
+            foreach (var layer in _layers.Where(l => l.Enabled))
             {
-                var layer = _layers[layerIndex];
-                if (layer.Enabled)
+                var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
+                if (layer.MaxVisible >= compare && layer.MinVisible < compare)
                 {
-                    double compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
-                    if (layer.MaxVisible >= compare && layer.MinVisible < compare)
-                    {
-                        RenderLayer(layer, g, _map);
-                    }
+                    RenderLayer(layer, g, _map);
                 }
+
             }
         }
 
@@ -106,16 +106,15 @@ namespace SharpMap.Rendering
             var res = Parallel.For(0, _layers.Length, RenderToImage);
 
             var tmpTransform = g.Transform;
-            g.Transform = new Matrix();
+            //g.Transform = new Matrix();
+            ///ApplyTransform(_transform, g);
+           // g.Transform = _transform;
             if (res.IsCompleted)
             {
-                for (var i = 0; i < _images.Length; i++)
+                foreach (var img in _images.Where(img => img != null))
                 {
-                    if (_images[i] != null)
-                    {
-                        g.DrawImageUnscaled(_images[i], 0, 0);
-                        //break;
-                    }
+                    //ApplyTransform(_transform, g);
+                    g.DrawImageUnscaled(img, 0, 0);
                 }
             }
             g.Transform = tmpTransform;
@@ -128,7 +127,7 @@ namespace SharpMap.Rendering
 
             var layer = _layers[layerIndex];
 
-            if (layer.Enabled)
+            if (layer!=null && layer.Enabled)
             {
                 var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
                 if (layer.MaxVisible >= compare && layer.MinVisible < compare)
@@ -137,7 +136,7 @@ namespace SharpMap.Rendering
                     using (var g = Graphics.FromImage(image))
                     {
                         g.PageUnit = GraphicsUnit.Pixel;
-                       // ApplyTransform(_transform, g);
+                        //ApplyTransform(_transform, g);
 
                         g.Clear(Color.Transparent);
                         RenderLayer(layer, g, _map);
@@ -162,25 +161,25 @@ namespace SharpMap.Rendering
             {
                 Logger.Error(e.Message, e);
 
-                using (var pen = new Pen(Color.Red, 4f))
-                {
-                    var size = map.Size;
+                //using (var pen = new Pen(Color.Red, 4f))
+                //{
+                //    var size = map.Size;
 
-                    g.DrawLine(pen, 0, 0, size.Width, size.Height);
-                    g.DrawLine(pen, size.Width, 0, 0, size.Height);
-                    g.DrawRectangle(pen, 0, 0, size.Width, size.Height);
-                }
+                //    g.DrawLine(pen, 0, 0, size.Width, size.Height);
+                //    g.DrawLine(pen, size.Width, 0, 0, size.Height);
+                //    g.DrawRectangle(pen, 0, 0, size.Width, size.Height);
+                //}
 
             }
         }
 
 
 
-        //[MethodImpl(MethodImplOptions.Synchronized)]
-        //private static void ApplyTransform(Matrix transform, Graphics g)
-        //{
-        //    g.Transform = transform.Clone();
-        //}
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private static void ApplyTransform(Matrix transform, Graphics g)
+        {
+            g.Transform = transform.Clone();
+        }
 
         /// <summary>
         /// Clean up resources.
@@ -189,9 +188,9 @@ namespace SharpMap.Rendering
         {
             if (_images != null)
             {
-                foreach (var image in _images)
+                foreach (var image in _images.Where(image => image != null))
                 {
-                    if (image != null) image.Dispose();
+                    image.Dispose();
                 }
             }
         }

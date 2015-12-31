@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using BruTile;
@@ -22,9 +23,9 @@ namespace SharpMap.Layers
     public class TileLayer : Layer, System.Runtime.Serialization.IDeserializationCallback
     {
         private static readonly ILog Logger = LogManager.GetCurrentClassLogger();
-        
+
         #region Fields
-        
+
         //string layerName;
         /// <summary>
         /// The <see cref="ImageAttributes"/> used when rendering the tiles
@@ -46,12 +47,12 @@ namespace SharpMap.Layers
         /// A file cache
         /// </summary>
         protected FileCache _fileCache = null;
-        
+
         /// <summary>
         /// The format of the images
         /// </summary>
-        protected ImageFormat _ImageFormat = null;
-        
+        protected readonly ImageFormat _ImageFormat = null;
+
         /// <summary>
         /// Value indicating if "error" tiles should be generated or not.
         /// </summary>
@@ -74,7 +75,7 @@ namespace SharpMap.Layers
             {
                 var extent = _source.Schema.Extent;
                 return new Envelope(
-                    extent.MinX, extent.MaxX, 
+                    extent.MinX, extent.MaxX,
                     extent.MinY, extent.MaxY);
             }
         }
@@ -110,7 +111,7 @@ namespace SharpMap.Layers
         /// <param name="transparentColor">The color to be treated as transparent color</param>
         /// <param name="showErrorInTile">Flag indicating that an error tile should be generated for <see cref="WebException"/>s</param>
         public TileLayer(ITileSource tileSource, string layerName, Color transparentColor, bool showErrorInTile)
-            : this(tileSource,layerName, transparentColor, showErrorInTile,null)
+            : this(tileSource, layerName, transparentColor, showErrorInTile, null)
         {
         }
 
@@ -172,29 +173,29 @@ namespace SharpMap.Layers
             if (!map.Size.IsEmpty && map.Size.Width > 0 && map.Size.Height > 0)
             {
                 var bmp = new Bitmap(map.Size.Width, map.Size.Height, PixelFormat.Format32bppArgb);
-                
+
                 using (var g = Graphics.FromImage(bmp))
                 {
                     g.InterpolationMode = InterpolationMode;
                     g.Transform = graphics.Transform.Clone();
 
-                    var extent = new Extent(map.Envelope.MinX, map.Envelope.MinY, 
-                                            map.Envelope.MaxX, map.Envelope.MaxY);
+                    var extent = new Extent(map.Envelope.MinX, map.Envelope.MinY,
+                        map.Envelope.MaxX, map.Envelope.MaxY);
                     var level = BruTile.Utilities.GetNearestLevel(_source.Schema.Resolutions, map.PixelSize);
                     var tiles = new List<TileInfo>(_source.Schema.GetTileInfos(extent, level));
                     var tileWidth = _source.Schema.GetTileWidth(level);
                     var tileHeight = _source.Schema.GetTileWidth(level);
 
                     IList<WaitHandle> waitHandles = new List<WaitHandle>();
-                    var toRender = new System.Collections.Concurrent.ConcurrentDictionary<TileIndex, Bitmap>();
-                    var takenFromCache = new System.Collections.Concurrent.ConcurrentDictionary<TileIndex,bool>();
-                    foreach (TileInfo info in tiles)
+                    var toRender = new ConcurrentDictionary<TileIndex, Bitmap>();
+                    var takenFromCache = new ConcurrentDictionary<TileIndex, bool>();
+                    foreach (var info in tiles)
                     {
                         var image = _bitmaps.Find(info.Index);
                         if (image != null)
                         {
                             toRender.TryAdd(info.Index, image);
-                            takenFromCache.TryAdd(info.Index,true);
+                            takenFromCache.TryAdd(info.Index, true);
                             continue;
                         }
                         if (_fileCache != null && _fileCache.Exists(info.Index))
@@ -209,7 +210,7 @@ namespace SharpMap.Layers
                         var waitHandle = new AutoResetEvent(false);
                         waitHandles.Add(waitHandle);
                         ThreadPool.QueueUserWorkItem(GetTileOnThread,
-                                                     new object[] { _source, info, toRender, waitHandle, true, takenFromCache });
+                            new object[] { _source, info, toRender, waitHandle, true, takenFromCache });
                     }
 
                     foreach (var handle in waitHandles)
@@ -228,23 +229,23 @@ namespace SharpMap.Layers
                             if (!toRender.ContainsKey(info.Index))
                                 continue;
 
-                            var bitmap = toRender[info.Index];//_bitmaps.Find(info.Index);
+                            var bitmap = toRender[info.Index]; //_bitmaps.Find(info.Index);
                             if (bitmap == null) continue;
 
                             var min = map.WorldToImage(new Coordinate(info.Extent.MinX, info.Extent.MinY));
                             var max = map.WorldToImage(new Coordinate(info.Extent.MaxX, info.Extent.MaxY));
 
-                            min = new PointF((float) Math.Round(min.X), (float) Math.Round(min.Y));
-                            max = new PointF((float) Math.Round(max.X), (float) Math.Round(max.Y));
+                            min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
+                            max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
 
                             try
                             {
                                 g.DrawImage(bitmap,
-                                            new Rectangle((int) min.X, (int) max.Y, (int) (max.X - min.X),
-                                                          (int) (min.Y - max.Y)),
-                                            0, 0, tileWidth, tileHeight,
-                                            GraphicsUnit.Pixel,
-                                            ia);
+                                    new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X),
+                                        (int)(min.Y - max.Y)),
+                                    0, 0, tileWidth, tileHeight,
+                                    GraphicsUnit.Pixel,
+                                    ia);
                             }
                             catch (Exception ee)
                             {
@@ -255,17 +256,19 @@ namespace SharpMap.Layers
                     }
 
                     //Add rendered tiles to cache
-                    foreach (var kvp in toRender)
+                    foreach (
+                        var kvp in
+                            toRender.Where(kvp => takenFromCache.ContainsKey(kvp.Key) && !takenFromCache[kvp.Key]))
                     {
-                        if (takenFromCache.ContainsKey(kvp.Key) && !takenFromCache[kvp.Key])
-                        {
-                            _bitmaps.Add(kvp.Key, kvp.Value);
-                        }
+                        _bitmaps.Add(kvp.Key, kvp.Value);
                     }
 
-                    graphics.Transform = new Matrix();
-                    graphics.DrawImageUnscaled(bmp, 0, 0);
-                    graphics.Transform = g.Transform;
+                    using (var transform = new Matrix())
+                    {
+                        graphics.Transform = transform;
+                        graphics.DrawImageUnscaled(bmp, 0, 0);
+                        graphics.Transform = g.Transform;
+                    }
                 }
             }
         }
@@ -276,21 +279,21 @@ namespace SharpMap.Layers
 
         private void GetTileOnThread(object parameter)
         {
-            object[] parameters = (object[])parameter;
+            var parameters = (object[])parameter;
             if (parameters.Length != 6) throw new ArgumentException("Six parameters expected");
-            ITileProvider tileProvider = (ITileProvider)parameters[0];
-            TileInfo tileInfo = (TileInfo)parameters[1];
+            var tileProvider = (ITileProvider)parameters[0];
+            var tileInfo = (TileInfo)parameters[1];
             //MemoryCache<Bitmap> bitmaps = (MemoryCache<Bitmap>)parameters[2];
             var bitmaps = (ConcurrentDictionary<TileIndex, Bitmap>)parameters[2];
-            AutoResetEvent autoResetEvent = (AutoResetEvent)parameters[3];
-            bool retry = (bool) parameters[4];
-            var takenFromCache = (IDictionary<TileIndex, bool>) parameters[5];
+            var autoResetEvent = (AutoResetEvent)parameters[3];
+            var retry = (bool)parameters[4];
+            var takenFromCache = (IDictionary<TileIndex, bool>)parameters[5];
 
             var setEvent = true;
             try
             {
-                byte[] bytes = tileProvider.GetTile(tileInfo);
-                Bitmap bitmap = new Bitmap(new MemoryStream(bytes));
+                var bytes = tileProvider.GetTile(tileInfo);
+                var bitmap = new Bitmap(new MemoryStream(bytes));
                 bitmaps.TryAdd(tileInfo.Index, bitmap);
 
                 // this bitmap will later be memory cached
@@ -301,7 +304,7 @@ namespace SharpMap.Layers
                 {
                     AddImageToFileCache(tileInfo, bitmap);
                 }
-                
+
             }
             catch (WebException ex)
             {
@@ -333,10 +336,10 @@ namespace SharpMap.Layers
                         // we don't want fatal exceptions here!
                         Logger.Error(e);
                     }
-                    
+
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Error(ex.Message);
             }

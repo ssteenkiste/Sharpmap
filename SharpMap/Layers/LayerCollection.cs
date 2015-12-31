@@ -41,9 +41,9 @@ namespace SharpMap.Layers
             {
                 lock (this)
                 {
-                    for (int i = 0; i < Count; i++)
+                    for (var i = 0; i < Count; i++)
                     {
-                        int comparison = String.Compare(this[i].LayerName,
+                        var comparison = String.Compare(this[i].LayerName,
                                                         layerName, StringComparison.CurrentCultureIgnoreCase);
 
                         if (comparison == 0)
@@ -70,7 +70,7 @@ namespace SharpMap.Layers
             lock (this)
             {
                 var newColl = new LayerCollection();
-                foreach (ILayer lay in this)
+                foreach (var lay in this)
                 {
                     var cloneable = lay as ICloneable;
                     if (cloneable != null)
@@ -122,14 +122,14 @@ namespace SharpMap.Layers
         /// <inheritdoc/>
         protected override void OnAddingNew(System.ComponentModel.AddingNewEventArgs e)
         {
-            ILayer newLayer = (e.NewObject as ILayer);
+            var newLayer = (e.NewObject as ILayer);
             if (newLayer == null) throw new ArgumentNullException("value", "The passed argument is null or not an ILayer");
 
             lock (this)
             {
-                foreach (ILayer layer in this)
+                foreach (var layer in this)
                 {
-                    int comparison = String.Compare(layer.LayerName,
+                    var comparison = string.Compare(layer.LayerName,
                                                     newLayer.LayerName, StringComparison.CurrentCultureIgnoreCase);
 
                     if (comparison == 0) throw new DuplicateLayerException(newLayer.LayerName);
@@ -148,16 +148,16 @@ namespace SharpMap.Layers
         {
             lock (this)
             {
-                LayerCollection lays = this;
+                var lays = this;
                 return GetLayerByNameInternal(layerName, lays);
             }
         }
 
         private static ILayer GetLayerByNameInternal(string layerName, System.Collections.Generic.IEnumerable<ILayer> lays)
         {
-            foreach (ILayer layer in lays)
+            foreach (var layer in lays)
             {
-                int comparison = String.Compare(layer.LayerName,
+                var comparison = String.Compare(layer.LayerName,
                                                 layerName, StringComparison.CurrentCultureIgnoreCase);
 
                 if (comparison == 0) return layer;
@@ -165,8 +165,8 @@ namespace SharpMap.Layers
                 //If this is a layergroup, check sublayers also
                 if (layer is LayerGroup)
                 {
-                    LayerGroup lg = layer as LayerGroup;
-                    ILayer lay = GetLayerByNameInternal(layerName, lg.Layers);
+                    var lg = layer as LayerGroup;
+                    var lay = GetLayerByNameInternal(layerName, lg.Layers);
                     if (lay != null)
                         return lay;
                 }
@@ -201,7 +201,7 @@ namespace SharpMap.Layers
         /// <param name="e">Event to fire-</param>
         protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            NotifyCollectionChangedEventHandler handler = CollectionChanged;
+            var handler = CollectionChanged;
             if (handler != null) handler(this, e);
         }
 

@@ -120,26 +120,26 @@ namespace SharpMap.Data
          {
             var constraintList = new ArrayList();
             var tables = base.Tables;
-            for (int i = 0; i < tables.Count; i++)
+            for (var i = 0; i < tables.Count; i++)
             {
-                DataTable dt = tables[i];
-                for (int j = 0; j < dt.Constraints.Count; j++)
+                var dt = tables[i];
+                for (var j = 0; j < dt.Constraints.Count; j++)
                 {
-                    Constraint c = dt.Constraints[j];
+                    var c = dt.Constraints[j];
                     var fk = c as ForeignKeyConstraint;
                     if (fk != null)
                     {
-                        string constraintName = c.ConstraintName;
+                        var constraintName = c.ConstraintName;
                         var parentInfo = new int[fk.RelatedColumns.Length + 1];
                         parentInfo[0] = tables.IndexOf(fk.RelatedTable);
-                        for (int k = 1; k < parentInfo.Length; k++)
+                        for (var k = 1; k < parentInfo.Length; k++)
                         {
                             parentInfo[k] = fk.RelatedColumns[k - 1].Ordinal;
                         }
 
-                        int[] childInfo = new int[fk.Columns.Length + 1];
+                        var childInfo = new int[fk.Columns.Length + 1];
                         childInfo[0] = i;//Since the constraint is on the current table, this is the child table.
-                        for (int k = 1; k < childInfo.Length; k++)
+                        for (var k = 1; k < childInfo.Length; k++)
                         {
                             childInfo[k] = fk.Columns[k - 1].Ordinal;
                         }
@@ -154,7 +154,7 @@ namespace SharpMap.Data
                         var extendedProperties = new Hashtable();
                         if (fk.ExtendedProperties.Keys.Count > 0)
                         {
-                            foreach (object propertyKey in fk.ExtendedProperties.Keys)
+                            foreach (var propertyKey in fk.ExtendedProperties.Keys)
                             {
                                 extendedProperties.Add(propertyKey, fk.ExtendedProperties[propertyKey]);
                             }
@@ -175,17 +175,17 @@ namespace SharpMap.Data
             var tables = base.Tables;
             foreach (DataRelation rel in Relations)
             {
-                string relationName = rel.RelationName;
+                var relationName = rel.RelationName;
                 var parentInfo = new int[rel.ParentColumns.Length + 1];
                 parentInfo[0] = tables.IndexOf(rel.ParentTable);
-                for (int j = 1; j < parentInfo.Length; j++)
+                for (var j = 1; j < parentInfo.Length; j++)
                 {
                     parentInfo[j] = rel.ParentColumns[j - 1].Ordinal;
                 }
 
                 var childInfo = new int[rel.ChildColumns.Length + 1];
                 childInfo[0] = tables.IndexOf(rel.ChildTable);
-                for (int j = 1; j < childInfo.Length; j++)
+                for (var j = 1; j < childInfo.Length; j++)
                 {
                     childInfo[j] = rel.ChildColumns[j - 1].Ordinal;
                 }
@@ -194,7 +194,7 @@ namespace SharpMap.Data
                 var extendedProperties = new Hashtable();
                 if (rel.ExtendedProperties.Keys.Count > 0)
                 {
-                    foreach (object propertyKey in rel.ExtendedProperties.Keys)
+                    foreach (var propertyKey in rel.ExtendedProperties.Keys)
                     {
                         extendedProperties.Add(propertyKey, rel.ExtendedProperties[propertyKey]);
                     }
@@ -215,16 +215,16 @@ namespace SharpMap.Data
             foreach (ArrayList list in constraintList)
             {
                 Debug.Assert(list.Count == 5);
-                string constraintName = (string)list[0];
-                int[] parentInfo = (int[])list[1];
-                int[] childInfo = (int[])list[2];
-                int[] rules = (int[])list[3];
-                Hashtable extendedProperties = (Hashtable)list[4];
+                var constraintName = (string)list[0];
+                var parentInfo = (int[])list[1];
+                var childInfo = (int[])list[2];
+                var rules = (int[])list[3];
+                var extendedProperties = (Hashtable)list[4];
 
                 //ParentKey Columns.
                 Debug.Assert(parentInfo.Length >= 1);
-                DataColumn[] parentkeyColumns = new DataColumn[parentInfo.Length - 1];
-                for (int i = 0; i < parentkeyColumns.Length; i++)
+                var parentkeyColumns = new DataColumn[parentInfo.Length - 1];
+                for (var i = 0; i < parentkeyColumns.Length; i++)
                 {
                     Debug.Assert(tables.Count > parentInfo[0]);
                     Debug.Assert(tables[parentInfo[0]].Columns.Count > parentInfo[i + 1]);
@@ -233,8 +233,8 @@ namespace SharpMap.Data
 
                 //ChildKey Columns.
                 Debug.Assert(childInfo.Length >= 1);
-                DataColumn[] childkeyColumns = new DataColumn[childInfo.Length - 1];
-                for (int i = 0; i < childkeyColumns.Length; i++)
+                var childkeyColumns = new DataColumn[childInfo.Length - 1];
+                for (var i = 0; i < childkeyColumns.Length; i++)
                 {
                     Debug.Assert(tables.Count > childInfo[0]);
                     Debug.Assert(tables[childInfo[0]].Columns.Count > childInfo[i + 1]);
@@ -242,7 +242,7 @@ namespace SharpMap.Data
                 }
 
                 //Create the Constraint.
-                ForeignKeyConstraint fk = new ForeignKeyConstraint(constraintName, parentkeyColumns, childkeyColumns);
+                var fk = new ForeignKeyConstraint(constraintName, parentkeyColumns, childkeyColumns);
                 Debug.Assert(rules.Length == 3);
                 fk.AcceptRejectRule = (AcceptRejectRule)rules[0];
                 fk.UpdateRule = (Rule)rules[1];
@@ -252,7 +252,7 @@ namespace SharpMap.Data
                 Debug.Assert(extendedProperties != null);
                 if (extendedProperties.Keys.Count > 0)
                 {
-                    foreach (object propertyKey in extendedProperties.Keys)
+                    foreach (var propertyKey in extendedProperties.Keys)
                     {
                         fk.ExtendedProperties.Add(propertyKey, extendedProperties[propertyKey]);
                     }
@@ -281,7 +281,7 @@ namespace SharpMap.Data
                 //ParentKey Columns.
                 Debug.Assert(parentInfo.Length >= 1);
                 var parentkeyColumns = new DataColumn[parentInfo.Length - 1];
-                for (int i = 0; i < parentkeyColumns.Length; i++)
+                for (var i = 0; i < parentkeyColumns.Length; i++)
                 {
                     Debug.Assert(tables.Count > parentInfo[0]);
                     Debug.Assert(tables[parentInfo[0]].Columns.Count > parentInfo[i + 1]);
@@ -291,7 +291,7 @@ namespace SharpMap.Data
                 //ChildKey Columns.
                 Debug.Assert(childInfo.Length >= 1);
                 var childkeyColumns = new DataColumn[childInfo.Length - 1];
-                for (int i = 0; i < childkeyColumns.Length; i++)
+                for (var i = 0; i < childkeyColumns.Length; i++)
                 {
                     Debug.Assert(tables.Count > childInfo[0]);
                     Debug.Assert(tables[childInfo[0]].Columns.Count > childInfo[i + 1]);
@@ -306,7 +306,7 @@ namespace SharpMap.Data
                 Debug.Assert(extendedProperties != null);
                 if (extendedProperties.Keys.Count > 0)
                 {
-                    foreach (object propertyKey in extendedProperties.Keys)
+                    foreach (var propertyKey in extendedProperties.Keys)
                     {
                         rel.ExtendedProperties.Add(propertyKey, extendedProperties[propertyKey]);
                     }
@@ -776,14 +776,11 @@ namespace SharpMap.Data
             get
             {
                 var i = 0;
-                foreach (var dataTable in _dataTables)
+                foreach (var dataTable in _dataTables.OfType<FeatureDataTable>())
                 {
-                    if (dataTable is FeatureDataTable)
-                    {
-                        if (i == index)
-                            return (FeatureDataTable) dataTable;
-                        i++;
-                    }
+                    if (i == index)
+                        return dataTable;
+                    i++;
                 }
                 throw new ArgumentOutOfRangeException("index");
             }

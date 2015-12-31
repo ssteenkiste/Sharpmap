@@ -221,19 +221,19 @@ namespace SharpMap.Layers
 
             try
             {
-                foreach (string key in _TileSetsActive)
+                foreach (var key in _TileSetsActive)
                 {
-                    TileSet tileSet = _TileSets[key];
+                    var tileSet = _TileSets[key];
 
                     tileSet.Verify();
 
-                    List<Envelope> tileExtents = TileExtents.GetTileExtents(tileSet, map.Envelope, map.PixelSize);
+                    var tileExtents = TileExtents.GetTileExtents(tileSet, map.Envelope, map.PixelSize);
 
                     if (logger.IsDebugEnabled)
                         logger.DebugFormat("TileCount: {0}", tileExtents.Count);
 
                     //TODO: Retrieve several tiles at the same time asynchronously to improve performance. PDD.
-                    foreach (Envelope tileExtent in tileExtents)
+                    foreach (var tileExtent in tileExtents)
                     {
                         if (bitmap != null)
                         {
@@ -255,8 +255,8 @@ namespace SharpMap.Layers
 
                         if (bitmap != null)
                         {
-                            PointF destMin = Transform.WorldtoMap(tileExtent.Min(), map);
-                            PointF destMax = Transform.WorldtoMap(tileExtent.Max(), map);
+                            var destMin = Transform.WorldtoMap(tileExtent.Min(), map);
+                            var destMax = Transform.WorldtoMap(tileExtent.Max(), map);
 
                             double minX = (int) Math.Round(destMin.X);
                             double minY = (int) Math.Round(destMax.Y);
@@ -325,8 +325,8 @@ namespace SharpMap.Layers
 
         private string GetRequestUrl(Envelope box, TileSet tileSet)
         {
-            Client.WmsOnlineResource resource = GetPreferredMethod();
-            StringBuilder strReq = new StringBuilder(resource.OnlineResource);
+            var resource = GetPreferredMethod();
+            var strReq = new StringBuilder(resource.OnlineResource);
             if (!resource.OnlineResource.Contains("?"))
                 strReq.Append("?");
             if (!strReq.ToString().EndsWith("&") && !strReq.ToString().EndsWith("?"))
@@ -339,7 +339,7 @@ namespace SharpMap.Layers
                 // LAYERS is set in caps because the current version of tilecache.py does not accept mixed case (a little bug)
             if (tileSet.Layers != null && tileSet.Layers.Count > 0)
             {
-                foreach (string layer in tileSet.Layers)
+                foreach (var layer in tileSet.Layers)
                     strReq.AppendFormat("{0},", layer);
                 strReq.Remove(strReq.Length - 1, 1);
             }
@@ -354,16 +354,16 @@ namespace SharpMap.Layers
             if (tileSet.Styles != null && tileSet.Styles.Count > 0)
             {
                 strReq.Append("&STYLES=");
-                foreach (string style in tileSet.Styles)
+                foreach (var style in tileSet.Styles)
                     strReq.AppendFormat("{0},", style);
                 strReq.Remove(strReq.Length - 1, 1);
             }
 
             if (_CustomParameters != null && _CustomParameters.Count > 0)
             {
-                foreach (string name in _CustomParameters.Keys)
+                foreach (var name in _CustomParameters.Keys)
                 {
-                    string value = _CustomParameters[name];
+                    var value = _CustomParameters[name];
                     strReq.AppendFormat("&{0}={1}", name, value);
                 }
             }
@@ -376,10 +376,10 @@ namespace SharpMap.Layers
             Stream responseStream = null;
             Bitmap bitmap = null;
 
-            Client.WmsOnlineResource resource = GetPreferredMethod();
-            string requestUrl = GetRequestUrl(extent, tileSet);
-            Uri myUri = new Uri(requestUrl);
-            WebRequest webRequest = WebRequest.Create(myUri);
+            var resource = GetPreferredMethod();
+            var requestUrl = GetRequestUrl(extent, tileSet);
+            var myUri = new Uri(requestUrl);
+            var webRequest = WebRequest.Create(myUri);
             webRequest.Method = resource.Type;
             webRequest.Timeout = TimeOut;
 
@@ -407,10 +407,10 @@ namespace SharpMap.Layers
                 {
                     //if the result was not an image retrieve content anyway for debugging.
                     responseStream = webResponse.GetResponseStream();
-                    StreamReader readStream = new StreamReader(responseStream, Encoding.UTF8);
-                    StringWriter stringWriter = new StringWriter();
+                    var readStream = new StreamReader(responseStream, Encoding.UTF8);
+                    var stringWriter = new StringWriter();
                     stringWriter.Write(readStream.ReadToEnd());
-                    string message = "Failed to retrieve image from the WMS in layer '" + LayerName +
+                    var message = "Failed to retrieve image from the WMS in layer '" + LayerName +
                                      "'. Was expecting image but received this: " + stringWriter.ToString();
                     HandleGetMapException(message, null);
                     ;
@@ -419,13 +419,13 @@ namespace SharpMap.Layers
             }
             catch (WebException webEx)
             {
-                string message = "There was a problem connecting to the WMS server when rendering layer '" + LayerName +
+                var message = "There was a problem connecting to the WMS server when rendering layer '" + LayerName +
                                  "'";
                 HandleGetMapException(message, webEx);
             }
             catch (Exception ex)
             {
-                string message = "There was a problem while retrieving the image from the WMS in layer '" + LayerName +
+                var message = "There was a problem while retrieving the image from the WMS in layer '" + LayerName +
                                  "'";
                 HandleGetMapException(message, ex);
             }
@@ -459,11 +459,11 @@ namespace SharpMap.Layers
         private Client.WmsOnlineResource GetPreferredMethod()
         {
             //We prefer get. Seek for supported 'get' method
-            for (int i = 0; i < _WmsClient.GetMapRequests.Length; i++)
+            for (var i = 0; i < _WmsClient.GetMapRequests.Length; i++)
                 if (_WmsClient.GetMapRequests[i].Type.ToLower() == "get")
                     return _WmsClient.GetMapRequests[i];
             //Next we prefer the 'post' method
-            for (int i = 0; i < _WmsClient.GetMapRequests.Length; i++)
+            for (var i = 0; i < _WmsClient.GetMapRequests.Length; i++)
                 if (_WmsClient.GetMapRequests[i].Type.ToLower() == "post")
                     return _WmsClient.GetMapRequests[i];
             return _WmsClient.GetMapRequests[0];
@@ -473,10 +473,10 @@ namespace SharpMap.Layers
 
         private static Rectangle RoundRectangle(RectangleF dest)
         {
-            double minX = Math.Round(dest.X);
-            double minY = Math.Round(dest.Y);
-            double maxX = Math.Round(dest.Right);
-            double maxY = Math.Round(dest.Bottom);
+            var minX = Math.Round(dest.X);
+            var minY = Math.Round(dest.Y);
+            var maxX = Math.Round(dest.Right);
+            var maxY = Math.Round(dest.Bottom);
             return new Rectangle((int) minX, (int) minY, (int) (maxX - minX), (int) (maxY - minY));
         }
     }

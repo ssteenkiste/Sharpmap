@@ -16,7 +16,10 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 #if !DotSpatialProjections
 using GeoAPI.CoordinateSystems.Transformations;
 #else
@@ -25,6 +28,7 @@ using DotSpatial.Projections;
 using GeoAPI.Geometries;
 using SharpMap.Base;
 using SharpMap.Styles;
+using Style = SharpMap.Styles.Style;
 
 namespace SharpMap.Layers
 {
@@ -46,12 +50,23 @@ namespace SharpMap.Layers
         /// <param name="g">Reference to graphics object used for rendering</param>
         public delegate void LayerRenderedEventHandler(Layer layer, Graphics g);
 
+        /// <summary>
+        /// EventHandler for event fired whenthe layer datas has been loaded
+        /// </summary>
+        /// <param name="layer">Layer data loaded</param>
+        public delegate void LayerDataLoadedEventHandler(Layer layer);
+
         #endregion
 
         /// <summary>
         /// Event fired when the layer has been rendered
         /// </summary>
         public event LayerRenderedEventHandler LayerRendered;
+
+        /// <summary>
+        /// Event fired when data has been loaded
+        /// </summary>
+        public event LayerDataLoadedEventHandler LayerDataLoaded;
 
         /// <summary>
         /// Event raised when the layer's <see cref="SRID"/> property has changed
@@ -85,6 +100,7 @@ namespace SharpMap.Layers
                 StyleChanged(this, eventArgs);
         }
 
+
         /// <summary>
         /// Event raised when the layers's <see cref="LayerName"/> property has changed
         /// </summary>
@@ -107,18 +123,19 @@ namespace SharpMap.Layers
         private IGeometryFactory _sourceFactory;
         private IGeometryFactory _targetFactory;
 
+        private object _tag;
         private string _layerName;
         private IStyle _style;
         private int _srid = -1;
         private int? _targetSrid;
 
-// ReSharper disable PublicConstructorInAbstractClass
+        // ReSharper disable PublicConstructorInAbstractClass
         ///<summary>
         /// Creates an instance of this class using the given Style
         ///</summary>
         ///<param name="style"></param>
         public Layer(Style style)
-// ReSharper restore PublicConstructorInAbstractClass
+        // ReSharper restore PublicConstructorInAbstractClass
         {
             _style = style;
         }
@@ -139,7 +156,7 @@ namespace SharpMap.Layers
             _coordinateTransform = null;
             _reverseCoordinateTransform = null;
             _style = null;
-            
+
             base.ReleaseManagedResources();
         }
 
@@ -210,7 +227,7 @@ namespace SharpMap.Layers
         public virtual ICoordinateTransformation ReverseCoordinateTransformation
         {
             get { return _reverseCoordinateTransform; }
-            set { _reverseCoordinateTransform= value; }
+            set { _reverseCoordinateTransform = value; }
         }
 #endif
 
@@ -222,7 +239,7 @@ namespace SharpMap.Layers
         public string LayerName
         {
             get { return _layerName; }
-            set { _layerName = value; }
+            set { _layerName = value; OnLayerNameChanged(EventArgs.Empty); }
         }
 
         /// <summary>
@@ -255,8 +272,7 @@ namespace SharpMap.Layers
         }
 
         //public abstract SharpMap.CoordinateSystems.CoordinateSystem CoordinateSystem { get; set; }
-
-
+        
         /// <summary>
         /// Renders the layer
         /// </summary>
@@ -285,17 +301,37 @@ namespace SharpMap.Layers
 
         #endregion
 
+        #region Data Loading
+
+        /// <summary>
+        /// Loads the datas
+        /// </summary>
+        /// <param name="map"></param>
+        public virtual void LoadDatas(Map map)
+        {
+            OnLayerDataLoaded();
+        }
+        
+        /// <summary>
+        /// Method called when Data has been loaded, to invoke <see cref="E:SharpMap.Layers.Layer.LayerDataLoaded"/>
+        /// </summary>
+        protected virtual void OnLayerDataLoaded()
+        {
+            if (LayerDataLoaded != null)
+                LayerDataLoaded(this);
+        }
+
+       
+        #endregion
+
+
         #region Properties
 
         /// <summary>
         /// Proj4 projection definition string
         /// </summary>
         public string Proj4Projection { get; set; }
-        /*
-        private bool _Enabled = true;
-        private double _MaxVisible = double.MaxValue;
-        private double _MinVisible = 0;
-        */
+
         /// <summary>
         /// Minimum visibility zoom, including this value
         /// </summary>
@@ -303,11 +339,11 @@ namespace SharpMap.Layers
         {
             get
             {
-                return _style.MinVisible; // return _MinVisible;
+                return _style.MinVisible;
             }
             set
             {
-                _style.MinVisible = value; // _MinVisible = value; 
+                _style.MinVisible = value;
             }
         }
 
@@ -318,12 +354,12 @@ namespace SharpMap.Layers
         {
             get
             {
-                //return _MaxVisible; 
+
                 return _style.MaxVisible;
             }
             set
             {
-                //_MaxVisible = value;
+
                 _style.MaxVisible = value;
             }
         }
@@ -331,7 +367,8 @@ namespace SharpMap.Layers
         /// <summary>
         /// Gets or Sets what kind of units the Min/Max visible properties are defined in
         /// </summary>
-        public VisibilityUnits VisibilityUnits {
+        public VisibilityUnits VisibilityUnits
+        {
             get
             {
                 return _style.VisibilityUnits;
@@ -372,6 +409,18 @@ namespace SharpMap.Layers
                     _style = value;
                     OnStyleChanged(EventArgs.Empty);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets an arbitrary object value that can be used to store custom information about this element
+        /// </summary>
+        public object Tag
+        {
+            get { return _tag; }
+            set
+            {
+                _tag = value;
             }
         }
 
@@ -446,6 +495,11 @@ namespace SharpMap.Layers
             return envelope;
         }
 
+        /// <summary>
+        /// Utility function to transform given geometry using a specific transformation
+        /// </summary>
+        /// <param name="geometry">The source geometry.</param>
+        /// <returns>The target Geometry.</returns>
         protected virtual IGeometry ToTarget(IGeometry geometry)
         {
             if (geometry.SRID == TargetSRID)
@@ -463,6 +517,11 @@ namespace SharpMap.Layers
             return geometry;
         }
 
+        /// <summary>
+        /// Utility function to transform given geometry to the source geometry
+        /// </summary>
+        /// <param name="geometry"></param>
+        /// <returns></returns>
         protected virtual IGeometry ToSource(IGeometry geometry)
         {
             if (geometry.SRID == SRID)

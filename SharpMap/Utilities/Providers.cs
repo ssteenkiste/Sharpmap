@@ -31,19 +31,20 @@ namespace SharpMap.Utilities
         /// </summary>
         public static Collection<Type> GetProviders()
         {
-            Collection<Type> ProviderList = new Collection<Type>();
+            var providerList = new Collection<Type>();
 
             // Ask the current AppDomain for a list of all
             // loaded assemblies.
-            AppDomain ad = AppDomain.CurrentDomain;
-            Assembly[] loadedAssemblies = ad.GetAssemblies();
+            var ad = AppDomain.CurrentDomain;
+            var loadedAssemblies = ad.GetAssemblies();
 
-            foreach (Assembly asm in loadedAssemblies)
-                foreach (Type t in asm.GetTypes())
+            foreach (var asm in loadedAssemblies)
+            {
+                foreach (var t in asm.GetTypes())
                     if ((t.IsClass) && (t.GetInterface("SharpMap.Data.Providers.IProvider") != null))
-                        ProviderList.Add(t);
-
-            return ProviderList;
+                        providerList.Add(t);
+            }
+            return providerList;
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace SharpMap.Utilities
         /// <param name="typeObj"></param>
         /// <param name="criteriaObj"></param>
         /// <returns></returns>
-        private static bool MyInterfaceFilter(Type typeObj, Object criteriaObj)
+        private static bool MyInterfaceFilter(Type typeObj, object criteriaObj)
         {
             return (typeObj.ToString() == criteriaObj.ToString());
         }

@@ -14,7 +14,7 @@ namespace SharpMap
         private double _maximumZoom;
         private Envelope _maximumExtents;
         private double _pixelAspectRatio;
-        const double MinMinZoomValue = 2d * Double.Epsilon;
+        const double MIN_MIN_ZOOM_VALUE = 2d * double.Epsilon;
 
         /// <summary>
         /// Gets or sets a value indicating the minimum zoom level.
@@ -24,8 +24,8 @@ namespace SharpMap
             get { return _minimumZoom; }
             set
             {
-                if (value < MinMinZoomValue)
-                    value = MinMinZoomValue;
+                if (value < MIN_MIN_ZOOM_VALUE)
+                    value = MIN_MIN_ZOOM_VALUE;
                 _minimumZoom = value;
             }
         }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Drawing;
+using System.Linq;
 
 namespace SharpMap.Fetching
 {
@@ -29,9 +30,12 @@ namespace SharpMap.Fetching
 
     namespace Mapsui.Fetcher
     {
+        /// <summary>
+        /// Fetch tile asynchhrnously.
+        /// </summary>
         public class TileFetcher : INotifyPropertyChanged
         {
-            private readonly MemoryCache<Feature> _memoryCache;
+            private readonly MemoryCache<Bitmap> _memoryCache;
             private readonly ITileSource _tileSource;
             private Extent _extent;
             private double _resolution;
@@ -44,8 +48,8 @@ namespace SharpMap.Fetching
             private readonly int _maxAttempts;
             private volatile bool _isThreadRunning;
             private volatile bool _isViewChanged;
-            public const int DefaultMaxThreads = 2;
-            public const int DefaultMaxAttempts = 2;
+            public const int DEFAULT_MAX_THREADS = 2;
+            public const int DEFAULT_MAX_ATTEMPTS = 2;
             private bool _busy;
             private int _numberTilesNeeded;
 
@@ -54,7 +58,15 @@ namespace SharpMap.Fetching
             /// </summary>
             public event DataChangedEventHandler DataChanged;
 
-            public TileFetcher(ITileSource tileSource, MemoryCache<Feature> memoryCache, int maxAttempts = DefaultMaxAttempts, int maxThreads = DefaultMaxThreads, IFetchStrategy strategy = null)
+            /// <summary>
+            /// Initialize a new instance of <see cref="TileFetcher"/>.
+            /// </summary>
+            /// <param name="tileSource"></param>
+            /// <param name="memoryCache"></param>
+            /// <param name="maxAttempts"></param>
+            /// <param name="maxThreads"></param>
+            /// <param name="strategy"></param>
+            public TileFetcher(ITileSource tileSource, MemoryCache<Bitmap> memoryCache, int maxAttempts = DEFAULT_MAX_ATTEMPTS, int maxThreads = DEFAULT_MAX_THREADS, IFetchStrategy strategy = null)
             {
                 if (tileSource == null) throw new ArgumentException("TileProvider can not be null");
                 if (memoryCache == null) throw new ArgumentException("MemoryCache can not be null");
@@ -153,7 +165,7 @@ namespace SharpMap.Fetching
                 }
             }
 
-            private IList<TileInfo> GetTilesMissing(IEnumerable<TileInfo> tileInfos, MemoryCache<Feature> memoryCache,
+            private static IList<TileInfo> GetTilesMissing(IEnumerable<TileInfo> tileInfos, MemoryCache<Bitmap> memoryCache,
                 Retries retries)
             {
                 var result = new List<TileInfo>();
@@ -205,11 +217,11 @@ namespace SharpMap.Fetching
                 {
                     if (e.Error == null && e.Cancelled == false && _isThreadRunning && e.Image != null)
                     {
-                        var feature = new Feature
+                        using (var ms = new MemoryStream(e.Image))
                         {
-                            Geometry = new Raster(new MemoryStream(e.Image), e.TileInfo.Extent)
-                        };
-                        _memoryCache.Add(e.TileInfo.Index, feature);
+                            var feature = new Bitmap(ms);
+                            _memoryCache.Add(e.TileInfo.Index, feature);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -240,7 +252,7 @@ namespace SharpMap.Fetching
                 private readonly IDictionary<TileIndex, int> _retries = new Dictionary<TileIndex, int>();
                 private readonly int _maxRetries;
                 private readonly int _threadId;
-                private const string CrossThreadExceptionMessage = "Cross thread access not allowed on class Retries";
+                private const string CROSS_THREAD_EXCEPTION_MESSAGE = "Cross thread access not allowed on class Retries";
 
                 public Retries(int maxRetries)
                 {
@@ -250,7 +262,7 @@ namespace SharpMap.Fetching
 
                 public bool ReachedMax(TileIndex index)
                 {
-                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CrossThreadExceptionMessage);
+                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CROSS_THREAD_EXCEPTION_MESSAGE);
 
                     var retryCount = (!_retries.Keys.Contains(index)) ? 0 : _retries[index];
                     return retryCount > _maxRetries;
@@ -258,7 +270,7 @@ namespace SharpMap.Fetching
 
                 public void PlusOne(TileIndex index)
                 {
-                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CrossThreadExceptionMessage);
+                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CROSS_THREAD_EXCEPTION_MESSAGE);
 
                     if (!_retries.Keys.Contains(index)) _retries.Add(index, 0);
                     else _retries[index]++;
@@ -266,7 +278,7 @@ namespace SharpMap.Fetching
 
                 public void Clear()
                 {
-                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CrossThreadExceptionMessage);
+                    if (_threadId != Thread.CurrentThread.ManagedThreadId) throw new Exception(CROSS_THREAD_EXCEPTION_MESSAGE);
 
                     _retries.Clear();
                 }
@@ -283,7 +295,7 @@ namespace SharpMap.Fetching
             /// <param name="propertyName"></param>
             protected virtual void OnPropertyChanged(string propertyName)
             {
-                PropertyChangedEventHandler handler = PropertyChanged;
+                var handler = PropertyChanged;
                 if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
             }
         }

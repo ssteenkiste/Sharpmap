@@ -33,7 +33,7 @@ namespace SharpMap.Styles
     {
         private static readonly Random _rnd = new Random();
 
-        static ILog logger = LogManager.GetLogger(typeof(VectorStyle));
+        static readonly ILog logger = LogManager.GetLogger(typeof(VectorStyle));
         /// <summary>
         /// Default Symbol
         /// </summary>
@@ -287,7 +287,6 @@ namespace SharpMap.Styles
                 _lineStyle = null;
             }
 
-
             if (_outlineStyle != null)
             {
                 _outlineStyle.Dispose();
@@ -299,7 +298,6 @@ namespace SharpMap.Styles
                 _pointBrush.Dispose();
                 _pointBrush = null;
             }
-
 
             if (_symbol != null)
             {

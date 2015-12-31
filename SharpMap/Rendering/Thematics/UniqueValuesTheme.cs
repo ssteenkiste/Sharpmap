@@ -58,10 +58,7 @@ namespace SharpMap.Rendering.Thematics
                 return _default;
 
             var val = attribute[_attributeName].ToString();
-            if (_styleMap.ContainsKey(val))
-                return _styleMap[val];          
-
-            return _default;
+            return _styleMap.ContainsKey(val) ? _styleMap[val] : _default;
         }
 
         /// <summary>
@@ -72,7 +69,7 @@ namespace SharpMap.Rendering.Thematics
         /// <summary>
         /// Gets the unique values
         /// </summary>
-        public String[] UniqueValues
+        public string[] UniqueValues
         {
             get
             {
@@ -95,9 +92,7 @@ namespace SharpMap.Rendering.Thematics
         public IStyle GetStyle(string value)
         {
             IStyle result;
-            if (_styleMap.TryGetValue(value, out result))
-                return result;
-            return _default;
+            return _styleMap.TryGetValue(value, out result) ? result : _default;
         }
     }
 }

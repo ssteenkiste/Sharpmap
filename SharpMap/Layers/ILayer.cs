@@ -16,7 +16,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System.Drawing;
-using System.Security.Cryptography.X509Certificates;
 using GeoAPI.Geometries;
 
 namespace SharpMap.Layers
@@ -35,7 +34,6 @@ namespace SharpMap.Layers
         /// Minimum visible zoom level
         /// </summary>
         double MaxVisible { get; set; }
-
 
         /// <summary>
         /// Gets or Sets what level-reference the Min/Max values are defined in
@@ -65,9 +63,6 @@ namespace SharpMap.Layers
         /// <summary>
         /// The spatial reference ID (CRS) that can be exposed externally.
         /// </summary>
-        /// <remarks>
-        /// TODO: explain better why I need this property
-        /// </remarks>
         int TargetSRID { get; }
 
         /// <summary>
@@ -82,7 +77,9 @@ namespace SharpMap.Layers
         /// <param name="map">Map which is rendered</param>
         void Render(Graphics g, Map map);
 
-
-        //SharpMap.CoordinateSystems.CoordinateSystem CoordinateSystem { get; set; }
+        ///// <summary>
+        ///// Loads the layer datas.
+        ///// </summary>
+        //void LoadDatas(Map map);
     }
 }

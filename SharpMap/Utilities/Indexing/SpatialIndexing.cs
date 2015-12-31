@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Common.Logging;
 using GeoAPI.Geometries;
 using NetTopologySuite.Utilities;
@@ -249,16 +250,14 @@ namespace SharpMap.Utilities.SpatialIndexing
                 objBuckets[1] = new List<BoxObjects>();
 
                 var longaxis = _box.LongestAxis(); // longest axis
-                var geoavg = 0d; // geometric average - midpoint of ALL the objects
 
                 // go through all bbox and calculate the average of the midpoints
-                var frac = 1.0d/objList.Count;
-                for (var i = 0; i < objList.Count; i++)
-                    geoavg += objList[i].Box.Centre[longaxis]*frac;
+                var frac = 1.0d / objList.Count;
+                var geoavg = objList.Sum(t => t.Box.Centre[longaxis]*frac); // geometric average - midpoint of ALL the objects
 
                 // bucket bbox based on their midpoint's side of the geo average in the longest axis
-                for (var i = 0; i < objList.Count; i++)
-                    objBuckets[geoavg > objList[i].Box.Centre[longaxis] ? 1 : 0].Add(objList[i]);
+                foreach (var boxObjects in objList)
+                    objBuckets[geoavg > boxObjects.Box.Centre[longaxis] ? 1 : 0].Add(boxObjects);
 
                 //If objects couldn't be splitted, just store them at the leaf
                 //TODO: Try splitting on another axis
@@ -293,7 +292,7 @@ namespace SharpMap.Utilities.SpatialIndexing
         /// <summary>
         /// This means areas overlap by 5%
         /// </summary>
-        private const double SplitRatio = 0.55d;
+        private const double SPLIT_RATIO = 0.55d;
 
         private static void SplitBoundingBox(Envelope input, out Envelope out1, out Envelope out2)
         {
@@ -304,18 +303,18 @@ namespace SharpMap.Utilities.SpatialIndexing
             /* -------------------------------------------------------------------- */
             if (input.Width > input.Height)
             {
-                range = input.Width*SplitRatio;
+                range = input.Width * SPLIT_RATIO;
 
                 out1 = new Envelope(input.BottomLeft(), new Coordinate(input.MinX + range, input.MaxY));
                 out2 = new Envelope(new Coordinate(input.MaxX - range, input.MinY), input.TopRight());
             }
 
-                /* -------------------------------------------------------------------- */
-                /*      Otherwise split in Y direction.                                 */
-                /* -------------------------------------------------------------------- */
+            /* -------------------------------------------------------------------- */
+            /*      Otherwise split in Y direction.                                 */
+            /* -------------------------------------------------------------------- */
             else
             {
-                range = input.Height*SplitRatio;
+                range = input.Height * SPLIT_RATIO;
 
                 out1 = new Envelope(input.BottomLeft(), new Coordinate(input.MaxX, input.MinY + range));
                 out2 = new Envelope(new Coordinate(input.MinX, input.MaxY - range), input.TopRight());
@@ -445,12 +444,12 @@ namespace SharpMap.Utilities.SpatialIndexing
             {
                 var featureCount = br.ReadInt32();
                 node._objList = new List<BoxObjects>();
-                for (int i = 0; i < featureCount; i++)
+                for (var i = 0; i < featureCount; i++)
                 {
                     var box = new BoxObjects();
                     box.Box = new Envelope(new Coordinate(br.ReadDouble(), br.ReadDouble()),
                         new Coordinate(br.ReadDouble(), br.ReadDouble()));
-                    box.ID = (uint) br.ReadInt32();
+                    box.ID = (uint)br.ReadInt32();
                     node._objList.Add(box);
                 }
             }
@@ -511,7 +510,7 @@ namespace SharpMap.Utilities.SpatialIndexing
                 }
 
                 sw.Write(node._objList.Count); //Write number of features at node
-                for (int i = 0; i < node._objList.Count; i++) //Write each featurebox
+                for (var i = 0; i < node._objList.Count; i++) //Write each featurebox
                 {
                     var bo = node._objList[i];
                     box = bo.Box;
@@ -618,7 +617,7 @@ namespace SharpMap.Utilities.SpatialIndexing
         public static double ErrorMetric(Envelope box)
         {
             var temp = new Coordinate(1, 1).Add(box.Max().Subtract(box.Min()));
-            return temp.X*temp.Y;
+            return temp.X * temp.Y;
         }
 
         /// <summary>
@@ -695,8 +694,9 @@ namespace SharpMap.Utilities.SpatialIndexing
     /// </summary>
     public class QuadTreeFactory : ISpatialIndexFactory<uint>
     {
+        private static readonly ILog _logger = LogManager.GetLogger(typeof(QuadTreeFactory));
+
         private static ShapeFile.SpatialIndexCreation _spatialIndexSpatialIndexCreationOption;
-        private string _extension;
 
         /// <summary>
         /// Gets or sets the default spatial index creation option
@@ -723,7 +723,7 @@ namespace SharpMap.Utilities.SpatialIndexing
         /// <returns>A new spatial index item</returns>
         public ISpatialIndexItem<uint> Create(uint oid, Envelope box)
         {
-            return new QuadTree.BoxObjects {ID = oid, Box = box};
+            return new QuadTree.BoxObjects { ID = oid, Box = box };
         }
 
         /// <summary>
@@ -756,15 +756,14 @@ namespace SharpMap.Utilities.SpatialIndexing
             if (!File.Exists(sidxFileName))
                 return null;
 
-            var logger = LogManager.GetCurrentClassLogger();
             try
             {
                 var sw = new Stopwatch();
                 sw.Start();
                 var tree = QuadTree.FromFile(sidxFileName);
                 sw.Stop();
-                if (logger.IsDebugEnabled)
-                    logger.DebugFormat("Loading QuadTree took {0}ms", sw.ElapsedMilliseconds);
+                if (_logger.IsDebugEnabled)
+                    _logger.DebugFormat("Loading QuadTree took {0}ms", sw.ElapsedMilliseconds);
                 return tree;
             }
             catch (QuadTree.ObsoleteFileFormatException)
@@ -774,7 +773,7 @@ namespace SharpMap.Utilities.SpatialIndexing
             }
             catch (Exception ex)
             {
-                logger.Error(ex);
+                _logger.Error(ex);
                 throw ex;
             }
         }
@@ -796,7 +795,7 @@ namespace SharpMap.Utilities.SpatialIndexing
             var root = QuadTree.CreateRootNode(extent);
             var h = new Heuristic
             {
-                maxdepth = (int) Math.Ceiling(Math.Log(expectedNumberOfEntries, 2)),
+                maxdepth = (int)Math.Ceiling(Math.Log(expectedNumberOfEntries, 2)),
                 // These are not used for this approach
                 minerror = 10,
                 tartricnt = 5,
@@ -813,9 +812,8 @@ namespace SharpMap.Utilities.SpatialIndexing
             }
 
             sw.Stop();
-            var logger = LogManager.GetCurrentClassLogger();
-            if (logger.IsDebugEnabled)
-                logger.DebugFormat("Linear creation of QuadTree took {0}ms", sw.ElapsedMilliseconds);
+            if (_logger.IsDebugEnabled)
+                _logger.DebugFormat("Linear creation of QuadTree took {0}ms", sw.ElapsedMilliseconds);
 
             return root;
 
@@ -841,7 +839,7 @@ namespace SharpMap.Utilities.SpatialIndexing
             }
 
             Heuristic heur;
-            heur.maxdepth = (int) Math.Ceiling(Math.Log(objList.Count, 2));
+            heur.maxdepth = (int)Math.Ceiling(Math.Log(objList.Count, 2));
             heur.minerror = 10;
             heur.tartricnt = 5;
             heur.mintricnt = 2;
@@ -849,12 +847,12 @@ namespace SharpMap.Utilities.SpatialIndexing
 
             sw.Stop();
 
-            var logger = LogManager.GetCurrentClassLogger();
-            if (logger.IsDebugEnabled)
-                logger.DebugFormat("Recursive creation of QuadTree took {0}ms", sw.ElapsedMilliseconds);
+            if (_logger.IsDebugEnabled)
+                _logger.DebugFormat("Recursive creation of QuadTree took {0}ms", sw.ElapsedMilliseconds);
 
             return root;
         }
 
     }
 }
+

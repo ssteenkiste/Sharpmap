@@ -17,8 +17,6 @@
 
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Net.Mime;
 using System.Runtime.CompilerServices;
 using Common.Logging;
 using SharpMap.Rendering.Thematics;
@@ -77,20 +75,20 @@ namespace SharpMap.Styles
 
         #endregion
 
-        private Brush _BackColor;
-        private SizeF _CollisionBuffer;
-        private bool _CollisionDetection;
+        private Brush _backColor;
+        private SizeF _collisionBuffer;
+        private bool _collisionDetection;
 
-        private Font _Font;
+        private Font _font;
 
-        private Color _ForeColor;
-        private Pen _Halo;
-        private HorizontalAlignmentEnum _HorizontalAlignment;
-        private PointF _Offset;
-        private VerticalAlignmentEnum _VerticalAlignment;
+        private Color _foreColor;
+        private Pen _halo;
+        private HorizontalAlignmentEnum _horizontalAlignment;
+        private PointF _offset;
+        private VerticalAlignmentEnum _verticalAlignment;
         private float _rotation;
         private bool _ignoreLength;
-        private bool _isTextOnPath = false;
+        private bool _isTextOnPath;
         /// <summary>
         /// get or set label on path
         /// </summary>
@@ -104,13 +102,13 @@ namespace SharpMap.Styles
         /// </summary>
         public LabelStyle()
         {
-            _Font = new Font(FontFamily.GenericSerif, 12f);
-            _Offset = new PointF(0, 0);
-            _CollisionDetection = false;
-            _CollisionBuffer = new Size(0, 0);
-            _ForeColor = Color.Black;
-            _HorizontalAlignment = HorizontalAlignmentEnum.Center;
-            _VerticalAlignment = VerticalAlignmentEnum.Middle;
+            _font = new Font(FontFamily.GenericSerif, 12f);
+            _offset = new PointF(0, 0);
+            _collisionDetection = false;
+            _collisionBuffer = new Size(0, 0);
+            _foreColor = Color.Black;
+            _horizontalAlignment = HorizontalAlignmentEnum.Center;
+            _verticalAlignment = VerticalAlignmentEnum.Middle;
         }
 
         /// <summary>
@@ -121,9 +119,9 @@ namespace SharpMap.Styles
             if (IsDisposed)
                 return;
 
-            if (_Font != null) _Font.Dispose();
-            if (_Halo != null) _Halo.Dispose();
-            if (_BackColor != null) _BackColor.Dispose();
+            if (_font != null) _font.Dispose();
+            if (_halo != null) _halo.Dispose();
+            if (_backColor != null) _backColor.Dispose();
 
             base.ReleaseManagedResources();
         }
@@ -137,14 +135,14 @@ namespace SharpMap.Styles
 
             lock (this)
             {
-                if (_Font != null)
-                    res.Font = (Font)_Font.Clone();
+                if (_font != null)
+                    res.Font = (Font)_font.Clone();
 
-                if (_Halo != null)
-                    res._Halo = (Pen)_Halo.Clone();
+                if (_halo != null)
+                    res._halo = (Pen)_halo.Clone();
 
-                if (_BackColor != null)
-                    res._BackColor = (Brush) _BackColor.Clone();
+                if (_backColor != null)
+                    res._backColor = (Brush) _backColor.Clone();
             }
 
             return res;
@@ -174,6 +172,8 @@ namespace SharpMap.Styles
                 case HorizontalAlignmentEnum.Right:
                     r.Alignment = StringAlignment.Far;
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
             switch (VerticalAlignment)
             {
@@ -186,6 +186,8 @@ namespace SharpMap.Styles
                 case VerticalAlignmentEnum.Bottom:
                     r.LineAlignment = StringAlignment.Far;
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
             return r;
         }
@@ -195,72 +197,43 @@ namespace SharpMap.Styles
         /// </summary>
         public Font Font
         {
-            get
-            {
-                return _Font;
-            }
+            get { return _font; }
             set
             {
                 if (value.Unit != GraphicsUnit.Point)
-                    LogManager.GetCurrentClassLogger().Error( fmh => fmh("Only assign fonts with size in Points"));
-                _Font = value;
+                    LogManager.GetCurrentClassLogger().Error(fmh => fmh("Only assign fonts with size in Points"));
+                _font = value;
             }
         }
 
-[NonSerialized] 
-private float _cachedDpiY = 0f;
-[NonSerialized]
-private Font _cachedFontForGraphics = null;
+        [NonSerialized] private float _cachedDpiY;
+        [NonSerialized] private Font _cachedFontForGraphics;
 
-/// <summary>
-/// Method to create a font that ca
-/// </summary>
-/// <param name="g"></param>
-/// <returns></returns>
-[MethodImpl(MethodImplOptions.Synchronized)]
-public Font GetFontForGraphics(Graphics g)
-{
-    if (g.DpiY != _cachedDpiY)
-    {
-        _cachedDpiY = g.DpiY;
-        if (_cachedFontForGraphics != null) _cachedFontForGraphics.Dispose();
-        _cachedFontForGraphics = new Font(_Font.FontFamily, _Font.GetHeight(g), _Font.Style, GraphicsUnit.Pixel);
-        /*
-        var textHeight = _Font.Size;
-        switch (_Font.Unit)
+        /// <summary>
+        /// Method to create a font that ca
+        /// </summary>
+        /// <param name="g"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public Font GetFontForGraphics(Graphics g)
         {
-            case GraphicsUnit.Display:
-                textHeight *= g.DpiY / 75;
-                break;
-            case GraphicsUnit.Document:
-                textHeight *= g.DpiY / 300;
-                break;
-            case GraphicsUnit.Inch:
-                textHeight *= g.DpiY;
-                break;
-            case GraphicsUnit.Millimeter:
-                textHeight /= 25.4f * g.DpiY;
-                break;
-            case GraphicsUnit.Pixel:
-                //do nothing
-                break;
-            case GraphicsUnit.Point:
-                textHeight *= g.DpiY / 72;
-                break;
-        }                
-        _cachedFontForGraphics = new Font(_Font.FontFamily, textHeight, _Font.Style, GraphicsUnit.Pixel);
-         */
-    }
-    return _cachedFontForGraphics;
-}
+            if (g.DpiY != _cachedDpiY)
+            {
+                _cachedDpiY = g.DpiY;
+                if (_cachedFontForGraphics != null) _cachedFontForGraphics.Dispose();
+                _cachedFontForGraphics = new Font(_font.FontFamily, _font.GetHeight(g), _font.Style, GraphicsUnit.Pixel);
+                
+            }
+            return _cachedFontForGraphics;
+        }
 
         /// <summary>
         /// Font color
         /// </summary>
         public Color ForeColor
         {
-            get { return _ForeColor; }
-            set { _ForeColor = value; }
+            get { return _foreColor; }
+            set { _foreColor = value; }
         }
 
         /// <summary>
@@ -268,8 +241,8 @@ public Font GetFontForGraphics(Graphics g)
         /// </summary>
         public Brush BackColor
         {
-            get { return _BackColor; }
-            set { _BackColor = value; }
+            get { return _backColor; }
+            set { _backColor = value; }
         }
 
         /// <summary>
@@ -279,10 +252,10 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Editor()]
         public Pen Halo
         {
-            get { return _Halo; }
+            get { return _halo; }
             set
             {
-                _Halo = value;
+                _halo = value;
                 //if (_Halo != null)
                 //    _Halo.LineJoin = LineJoin.Round;
             }
@@ -295,8 +268,8 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Category("Uneditable")]
         public PointF Offset
         {
-            get { return _Offset; }
-            set { _Offset = value; }
+            get { return _offset; }
+            set { _offset = value; }
         }
 
         /// <summary>
@@ -307,8 +280,8 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Category("Collision Detection")]
         public bool CollisionDetection
         {
-            get { return _CollisionDetection; }
-            set { _CollisionDetection = value; }
+            get { return _collisionDetection; }
+            set { _collisionDetection = value; }
         }
 
         /// <summary>
@@ -317,8 +290,8 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Category("Collision Detection")]
         public SizeF CollisionBuffer
         {
-            get { return _CollisionBuffer; }
-            set { _CollisionBuffer = value; }
+            get { return _collisionBuffer; }
+            set { _collisionBuffer = value; }
         }
 
         /// <summary>
@@ -327,8 +300,8 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Category("Alignment")]
         public HorizontalAlignmentEnum HorizontalAlignment
         {
-            get { return _HorizontalAlignment; }
-            set { _HorizontalAlignment = value; }
+            get { return _horizontalAlignment; }
+            set { _horizontalAlignment = value; }
         }
 
         /// <summary>
@@ -337,8 +310,8 @@ public Font GetFontForGraphics(Graphics g)
         [System.ComponentModel.Category("Alignment")]
         public VerticalAlignmentEnum VerticalAlignment
         {
-            get { return _VerticalAlignment; }
-            set { _VerticalAlignment = value; }
+            get { return _verticalAlignment; }
+            set { _verticalAlignment = value; }
         }
 
         /// <summary>
@@ -348,7 +321,7 @@ public Font GetFontForGraphics(Graphics g)
         public float Rotation
         {
             get { return _rotation; }
-            set { _rotation = value % 360f; }
+            set { _rotation = value%360f; }
         }
 
         /// <summary>
@@ -360,6 +333,5 @@ public Font GetFontForGraphics(Graphics g)
             get { return _ignoreLength; }
             set { _ignoreLength = value; }
         }
-
     }
 }
