@@ -272,7 +272,7 @@ namespace SharpMap.Layers
         }
 
         //public abstract SharpMap.CoordinateSystems.CoordinateSystem CoordinateSystem { get; set; }
-        
+
         /// <summary>
         /// Renders the layer
         /// </summary>
@@ -307,11 +307,11 @@ namespace SharpMap.Layers
         /// Loads the datas
         /// </summary>
         /// <param name="map"></param>
-        public virtual void LoadDatas(Map map)
+        public virtual void LoadDatas(IMapViewPort view)
         {
             OnLayerDataLoaded();
         }
-        
+
         /// <summary>
         /// Method called when Data has been loaded, to invoke <see cref="E:SharpMap.Layers.Layer.LayerDataLoaded"/>
         /// </summary>
@@ -321,7 +321,6 @@ namespace SharpMap.Layers
                 LayerDataLoaded(this);
         }
 
-       
         #endregion
 
 
@@ -391,10 +390,21 @@ namespace SharpMap.Layers
             }
             set
             {
-                //_Enabled = value;
-                _style.Enabled = value;
+
+                if (_style.Enabled != value)
+                {
+
+                    //_Enabled = value;
+                    _style.Enabled = value;
+
+                  
+                }
+                
+
             }
         }
+
+
 
         /// <summary>
         /// Gets or sets the Style for this Layer

@@ -16,7 +16,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -27,9 +26,7 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using GeoAPI.Geometries;
-using NetTopologySuite;
 using SharpMap.Layers;
 using SharpMap.Rendering;
 using SharpMap.Rendering.Decoration;
@@ -51,7 +48,7 @@ namespace SharpMap
     /// Creating a new map instance, adding layers and rendering the map:
     /// </example>
     [Serializable]
-    public class Map : IDisposable
+    public class Map : IDisposable, IMapViewPort
     {
         /// <summary>
         /// Method to invoke the static constructor of this class
@@ -144,7 +141,7 @@ namespace SharpMap
         private Color _backgroundColor;
         private int _srid = -1;
         private double _zoom;
-        private Point _center ;
+        private Point _center;
         private readonly LayerCollection _layers;
         private readonly LayerCollection _backgroundLayers;
         private readonly VariableLayerCollection _variableLayers;
@@ -641,50 +638,46 @@ namespace SharpMap
                 throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
 
             //Pauses the timer for VariableLayer
-            VariableLayerCollection.Pause = true;
+            //VariableLayerCollection.Pause = true;
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0) && (_variableLayers == null || _variableLayers.Count == 0))
                 throw new InvalidOperationException("No layers to render");
 
-            lock (MapTransform)
-            {
-                g.Transform = MapTransform.Clone();
-            }
+
+            g.Transform = MapTransform;
             g.Clear(BackColor);
             g.PageUnit = GraphicsUnit.Pixel;
 
             var zoom = Zoom;
             var scale = double.NaN; //will be resolved if needed
 
-            ILayer[] layerList;
+            IList<ILayer> layerList;
             if (_backgroundLayers != null && _backgroundLayers.Count > 0)
             {
-                layerList = new ILayer[_backgroundLayers.Count];
-                _backgroundLayers.CopyTo(layerList, 0);
+
+                layerList = _backgroundLayers.ToList();
                 foreach (var layer in layerList)
                 {
                     if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
                     {
                         scale = MapScale;
                     }
+
                     var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
 
                     OnLayerRendering(layer, LayerCollectionType.Background);
-                    if (layer.Enabled)
+                    if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
                     {
-                        if (layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
-                        {
-                            LayerCollectionRenderer.RenderLayer(layer, g, this);
-                        }
+                        LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
+
                     OnLayerRendered(layer, LayerCollectionType.Background);
                 }
             }
 
             if (_layers != null && _layers.Count > 0)
             {
-                layerList = new ILayer[_layers.Count];
-                _layers.CopyTo(layerList, 0);
+                layerList = _layers.ToList();
 
                 //int srid = (Layers.Count > 0 ? Layers[0].SRID : -1); //Get the SRID of the first layer
                 foreach (var layer in layerList)
@@ -697,16 +690,16 @@ namespace SharpMap
                     OnLayerRendering(layer, LayerCollectionType.Static);
 
                     if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
+                    {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
-
+                    }
                     OnLayerRendered(layer, LayerCollectionType.Static);
                 }
             }
 
             if (_variableLayers != null && _variableLayers.Count > 0)
             {
-                layerList = new ILayer[_variableLayers.Count];
-                _variableLayers.CopyTo(layerList, 0);
+                layerList = _variableLayers.ToList();
                 foreach (var layer in layerList)
                 {
                     if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
@@ -715,13 +708,12 @@ namespace SharpMap
                     }
                     var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
                     if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
+                    {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
+                    }
                 }
             }
 
-#pragma warning disable 612,618
-            RenderDisclaimer(g);
-#pragma warning restore 612,618
 
             // Render all map decorations
             foreach (var mapDecoration in _decorations)
@@ -729,7 +721,7 @@ namespace SharpMap
                 mapDecoration.Render(g, this);
             }
             //Resets the timer for VariableLayer
-            VariableLayerCollection.Pause = false;
+            //VariableLayerCollection.Pause = false;
 
             OnMapRendered(g);
         }
@@ -846,18 +838,23 @@ namespace SharpMap
 
             g.PageUnit = GraphicsUnit.Pixel;
 
-            //LayerCollectionRenderer.AllowParallel = layerCollectionType == LayerCollectionType.Static;
-            using (var lcr = new LayerCollectionRenderer(lc, newTransform))
+            foreach (var layer in lc)
             {
-                lcr.Render(g, this, layerCollectionType == LayerCollectionType.Static);
+                if (layer.IsLayerVisible(this))
+                {
+                    LayerCollectionRenderer.RenderLayer(layer, g, this);
+                }
             }
+
+            //LayerCollectionRenderer.AllowParallel = layerCollectionType == LayerCollectionType.Static;
+            //using (var lcr = new LayerCollectionRenderer(lc, newTransform))
+            //{
+            //    lcr.Render(g, this, layerCollectionType == LayerCollectionType.Static);
+            //}
 
             g.Transform = transform;
             if (layerCollectionType == LayerCollectionType.Static)
             {
-#pragma warning disable 612,618
-                RenderDisclaimer(g);
-#pragma warning restore 612,618
                 if (drawMapDecorations)
                 {
                     foreach (var mapDecoration in Decorations)
@@ -870,45 +867,8 @@ namespace SharpMap
             VariableLayerCollection.Pause = false;
 
         }
-        [Obsolete]
-        private void RenderDisclaimer(Graphics g)
-        {
-            //Disclaimer
-            if (!string.IsNullOrEmpty(_disclaimer))
-            {
-                var size = VectorRenderer.SizeOfString(g, _disclaimer, _disclaimerFont);
-                size.Width = (float)Math.Ceiling(size.Width);
-                size.Height = (float)Math.Ceiling(size.Height);
-                StringFormat sf;
-                switch (DisclaimerLocation)
-                {
-                    case 0: //Right-Bottom
-                        sf = new StringFormat();
-                        sf.Alignment = StringAlignment.Far;
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
-                            g.VisibleClipBounds.Width,
-                            g.VisibleClipBounds.Height - size.Height - 2, sf);
-                        break;
-                    case 1: //Right-Top
-                        sf = new StringFormat();
-                        sf.Alignment = StringAlignment.Far;
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black,
-                            g.VisibleClipBounds.Width, 0f, sf);
-                        break;
-                    case 2: //Left-Top
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f, 0f);
-                        break;
-                    case 3://Left-Bottom
-                        g.DrawString(Disclaimer, DisclaimerFont, Brushes.Black, 0f,
-                            g.VisibleClipBounds.Height - size.Height - 2);
-                        break;
-                }
-            }
-        }
-
+    
         #endregion
-
-
 
         /// <summary>
         /// Returns a cloned copy of this map-object.
@@ -924,10 +884,6 @@ namespace SharpMap
                 clone = new Map
                 {
                     BackColor = BackColor,
-#pragma warning disable 612,618
-                    Disclaimer = Disclaimer,
-                    DisclaimerLocation = DisclaimerLocation,
-#pragma warning restore 612,618
                     MaximumZoom = MaximumZoom,
                     MinimumZoom = MinimumZoom,
                     PixelAspectRatio = PixelAspectRatio,
@@ -936,10 +892,6 @@ namespace SharpMap
                     SRID = SRID
                 };
 
-#pragma warning disable 612,618
-                if (DisclaimerFont != null)
-                    clone.DisclaimerFont = (Font)DisclaimerFont.Clone();
-#pragma warning restore 612,618
                 if (MapTransform != null)
                     clone.MapTransform = MapTransform.Clone();
                 if (!Size.IsEmpty)
@@ -963,8 +915,6 @@ namespace SharpMap
 
             return clone;
         }
-
-
 
         #region Layer
         /// <summary>
@@ -1285,11 +1235,13 @@ namespace SharpMap
             }
         }
 
+        public void ViewChanged()
+        {
+            LoadDatas();
+        }
+
         protected void OnMapViewChanged()
         {
-
-            LoadDatas();
-
             if (MapViewOnChange != null)
             {
                 MapViewOnChange();
@@ -1298,7 +1250,7 @@ namespace SharpMap
 
         private void LoadDatas()
         {
-            foreach (var l in Layers.ToList().OfType<Layer>())
+            foreach (var l in Layers.ToList().OfType<Layer>().Where(l => l.Enabled && l.MinVisible < Zoom && l.MaxVisible >= Zoom))
             {
                 l.LoadDatas(this);
             }
@@ -1564,62 +1516,6 @@ namespace SharpMap
 
             }
         }
-
-        #endregion
-
-        #region Disclaimer
-
-        private string _disclaimer;
-        /// <summary>
-        /// Copyright notice to be placed on the map
-        /// </summary>
-        [Obsolete("Use Disclaimer as MapDecoration instead!")]
-        public string Disclaimer
-        {
-            get { return _disclaimer; }
-            set
-            {
-                //only set disclaimer if not already done
-                if (string.IsNullOrEmpty(_disclaimer))
-                {
-                    _disclaimer = value;
-                    //Ensure that Font for disclaimer is set
-                    if (_disclaimerFont == null)
-                        _disclaimerFont = new Font(FontFamily.GenericSansSerif, 8f);
-                }
-            }
-        }
-
-        private Font _disclaimerFont;
-        /// <summary>
-        /// Font to use for the Disclaimer
-        /// </summary>
-        [Obsolete("Use Disclaimer as MapDecoration instead!")]
-        public Font DisclaimerFont
-        {
-            get { return _disclaimerFont; }
-            set
-            {
-                if (value == null) return;
-                _disclaimerFont = value;
-            }
-        }
-
-        private int _disclaimerLocation;
-
-        /// <summary>
-        /// Location for the disclaimer
-        /// 2|1
-        /// -+-
-        /// 3|0
-        /// </summary>
-        [Obsolete("Use Disclaimer as MapDecoration instead!")]
-        public int DisclaimerLocation
-        {
-            get { return _disclaimerLocation; }
-            set { _disclaimerLocation = value % 4; }
-        }
-
 
         #endregion
     }

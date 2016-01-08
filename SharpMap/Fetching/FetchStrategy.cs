@@ -25,15 +25,6 @@ namespace SharpMap.Fetching
 
                 infos.AddRange(tileInfos.Where(info => (info.Index.Row >= 0) && (info.Index.Col >= 0)));
             }
-
-
-            //var tileInfos = schema.GetTileInfos(extent, levelId).OrderBy(
-            //        t => Algorithms.Distance(extent.CenterX, extent.CenterY, t.Extent.CenterX, t.Extent.CenterY));
-
-            //foreach (TileInfo info in tileInfos.Where(info => (info.Index.Row >= 0) && (info.Index.Col >= 0)))
-            //{
-            //    infos.Add(info);
-            //}
             
             return infos;
         }

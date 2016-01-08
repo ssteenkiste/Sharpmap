@@ -1,6 +1,7 @@
 ﻿using System;
 using BruTile;
 using GeoAPI.Geometries;
+using SharpMap.Layers;
 
 namespace SharpMap.Fetching
 {
@@ -11,7 +12,7 @@ namespace SharpMap.Fetching
         /// <summary>
         /// Indicates that there has been a change in the view of the map
         /// </summary>
-        void LoadDatas(Map map);
+        void LoadDatas(IMapViewPort view);
         event DataChangedEventHandler DataChanged;
         void ClearCache();
     }
@@ -33,8 +34,20 @@ namespace SharpMap.Fetching
             LayerName = layerName;
         }
 
+        public DataChangedEventArgs(Exception error, bool cancelled, string layerName, ILayer layer)
+        {
+            Error = error;
+            Cancelled = cancelled;
+            LayerName = layerName;
+            Layer = layer;
+
+        }
+
         public Exception Error { get; private set; }
         public bool Cancelled { get; private set; }
         public string LayerName { get; set; }
+
+        public ILayer Layer { get; set; }
+        
     }
 }

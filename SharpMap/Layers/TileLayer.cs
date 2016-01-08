@@ -41,7 +41,7 @@ namespace SharpMap.Layers
         /// An in-memory tile cache
         /// </summary>
         [NonSerialized]
-        protected MemoryCache<Bitmap> _bitmaps = new MemoryCache<Bitmap>(100, 200);
+        protected MemoryCache<Bitmap> _bitmaps = new MemoryCache<Bitmap>(200, 300);
 
         /// <summary>
         /// A file cache
@@ -383,16 +383,17 @@ namespace SharpMap.Layers
         public void OnDeserialization(object sender)
         {
             if (_bitmaps == null)
-                _bitmaps = new MemoryCache<Bitmap>(100, 200);
+                _bitmaps = new MemoryCache<Bitmap>(200, 300);
         }
 
         protected override void ReleaseManagedResources()
         {
             base.ReleaseManagedResources();
 
-            if (_source is IDisposable)
+            var source = _source as IDisposable;
+            if (source != null  )
             {
-                ((IDisposable)_source).Dispose();
+                source.Dispose();
             }
 
         }

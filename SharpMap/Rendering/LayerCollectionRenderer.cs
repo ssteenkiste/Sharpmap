@@ -30,6 +30,7 @@ namespace SharpMap.Rendering
         /// Creates an instance of this class
         /// </summary>
         /// <param name="layers">The layer collection to render</param>
+        /// <param name="transform"></param>
         public LayerCollectionRenderer(ICollection<ILayer> layers, Matrix transform)
         {
             _layers = new ILayer[layers.Count];
@@ -43,7 +44,7 @@ namespace SharpMap.Rendering
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map</param>
         /// <param name="allowParallel"></param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public void Render(Graphics g, Map map, bool allowParallel)
         {
             _map = map;
@@ -88,14 +89,12 @@ namespace SharpMap.Rendering
 
         private void RenderSequential(Graphics g)
         {
-            foreach (var layer in _layers.Where(l => l.Enabled))
+            foreach (var layer in _layers)
             {
-                var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
-                if (layer.MaxVisible >= compare && layer.MinVisible < compare)
+                if(layer.IsLayerVisible(_map))
                 {
                     RenderLayer(layer, g, _map);
                 }
-
             }
         }
 
@@ -161,14 +160,14 @@ namespace SharpMap.Rendering
             {
                 Logger.Error(e.Message, e);
 
-                //using (var pen = new Pen(Color.Red, 4f))
-                //{
-                //    var size = map.Size;
+                using (var pen = new Pen(Color.Red, 4f))
+                {
+                    var size = map.Size;
 
-                //    g.DrawLine(pen, 0, 0, size.Width, size.Height);
-                //    g.DrawLine(pen, size.Width, 0, 0, size.Height);
-                //    g.DrawRectangle(pen, 0, 0, size.Width, size.Height);
-                //}
+                    g.DrawLine(pen, 0, 0, size.Width, size.Height);
+                    g.DrawLine(pen, size.Width, 0, 0, size.Height);
+                    g.DrawRectangle(pen, 0, 0, size.Width, size.Height);
+                }
 
             }
         }

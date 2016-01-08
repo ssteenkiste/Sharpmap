@@ -17,6 +17,7 @@
 
 using System.Drawing;
 using GeoAPI.Geometries;
+using SharpMap.Styles;
 
 namespace SharpMap.Layers
 {
@@ -81,5 +82,32 @@ namespace SharpMap.Layers
         ///// Loads the layer datas.
         ///// </summary>
         //void LoadDatas(Map map);
+    }
+
+
+    public static class LayerExtensions
+    {
+        /// <summary>
+        /// Check if layer is visible.
+        /// </summary>
+        /// <param name="layer"></param>        
+        /// <param name="view"></param>
+        /// <returns></returns>
+        public static bool IsLayerVisible(this ILayer layer, IMapViewPort view)
+        {
+            if (!layer.Enabled)
+            {
+                return false;
+            }
+
+            var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? view.Zoom : view.MapScale;
+
+            if (compare < layer.MinVisible && !double.IsNaN(layer.MinVisible) || compare > layer.MaxVisible && !double.IsNaN(layer.MaxVisible))
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 }

@@ -62,7 +62,7 @@ namespace SharpMap.Layers
             : base(new VectorStyle())
         {
             LayerName = layername;
-            SmoothingMode = SmoothingMode.AntiAlias;
+            FetchingPostponedInMilliseconds = 100;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace SharpMap.Layers
         public VectorLayer(string layername, IProvider dataSource) : this(layername)
         {
             _dataSource = dataSource;
-            FetchingPostponedInMilliseconds = 500;
+            SmoothingMode = SmoothingMode.HighQuality;
         }
 
         /// <summary>
@@ -185,6 +185,7 @@ namespace SharpMap.Layers
         /// </summary>
         protected override void ReleaseManagedResources()
         {
+            ClearCache();
             if (DataSource != null)
                 DataSource.Dispose();
             base.ReleaseManagedResources();
@@ -203,6 +204,8 @@ namespace SharpMap.Layers
             if (map.Center == null)
                 throw (new ApplicationException("Cannot render map. View center not specified"));
 
+            var oldSmoothingMode = g.SmoothingMode;
+
             g.SmoothingMode = SmoothingMode;
             var envelope = ToSource(map.Envelope); //View to render
 
@@ -215,6 +218,7 @@ namespace SharpMap.Layers
             else
                 RenderInternal(g, map, envelope);
 
+            g.SmoothingMode = oldSmoothingMode;
 
             base.Render(g, map);
         }
@@ -247,54 +251,44 @@ namespace SharpMap.Layers
 
             try
             {
-                var scale = map.MapScale;
-                var zoom = map.Zoom;
-
                 foreach (var features in ds.Tables)
                 {
                     // Transform geometries if necessary
-                    if (CoordinateTransformation != null && !useCache)
-                    {
-                        for (var i = 0; i < features.Count; i++)
-                        {
-                            features[i].Geometry = ToTarget(features[i].Geometry);
-                        }
-                    }
+                    //if (CoordinateTransformation != null && !useCache)
+                    //{
+                    //    for (var i = 0; i < features.Count; i++)
+                    //    {
+                    //        features[i].Geometry = ToTarget(features[i].Geometry);
+                    //    }
+                    //}
 
                     //Linestring outlines is drawn by drawing the layer once with a thicker line
                     //before drawing the "inline" on top.
                     if (Style.EnableOutline)
                     {
 
-                        //foreach(var feature in features.GetEnumerator())
                         for (var i = 0; i < features.Count; i++)
                         {
                             var feature = features[i];
-                            var outlineStyle = theme.GetStyle(feature) as VectorStyle;
-                            if (outlineStyle == null) continue;
-                            if (!(outlineStyle.Enabled && outlineStyle.EnableOutline)) continue;
-
-                            var compare = outlineStyle.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
-
-                            if (!(outlineStyle.MinVisible <= compare && compare <= outlineStyle.MaxVisible)) continue;
-
-                            using (outlineStyle = outlineStyle.Clone())
+                            using (var outlineStyle = theme.GetStyle(feature) as VectorStyle)
                             {
-                                if (outlineStyle != null)
-                                {
-                                    //Draw background of all line-outlines first
-                                    var lineString = feature.Geometry as ILineString;
-                                    if (lineString != null)
-                                    {
-                                        VectorRenderer.DrawLineString(g, lineString, outlineStyle.Outline,
-                                            map, outlineStyle.LineOffset);
-                                    }
-                                    else if (feature.Geometry is IMultiLineString)
-                                    {
-                                        VectorRenderer.DrawMultiLineString(g, (IMultiLineString)feature.Geometry,
-                                            outlineStyle.Outline, map, outlineStyle.LineOffset);
-                                    }
-                                }
+                                ApplyStyle(g, map, outlineStyle, (graphics, map1, style) =>
+                                  {
+                                      //Draw background of all line-outlines first
+                                      var lineString = feature.Geometry as ILineString;
+                                      if (lineString != null)
+                                      {
+                                          VectorRenderer.DrawLineString(g, lineString, style.Outline,
+                                              map, style.LineOffset);
+                                      }
+                                      else if (feature.Geometry is IMultiLineString)
+                                      {
+                                          VectorRenderer.DrawMultiLineString(g, (IMultiLineString)feature.Geometry,
+                                              style.Outline, map, style.LineOffset);
+                                      }
+                                  }
+                                  );
+
                             }
                         }
                     }
@@ -304,29 +298,8 @@ namespace SharpMap.Layers
                     {
                         var feature = features[i];
                         var style = theme.GetStyle(feature);
-                        if (style == null) continue;
-                        if (!style.Enabled) continue;
 
-                        var compare = style.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
-
-                        if (!(style.MinVisible <= compare && compare <= style.MaxVisible)) continue;
-
-
-                        var stylesToRender = GetStylesToRender(style);
-
-                        if (stylesToRender == null)
-                            return;
-
-                        foreach (var vstyle in stylesToRender.Where(vstyle => vstyle is VectorStyle && vstyle.Enabled))
-                        {
-                            using (var clone = ((VectorStyle)vstyle).Clone())
-                            {
-                                if (clone != null)
-                                {
-                                    RenderGeometry(g, map, feature.Geometry, clone);
-                                }
-                            }
-                        }
+                        ApplyStyle(g, map, style, (graphics, map1, vstyle) => RenderGeometry(g, map, feature.Geometry, vstyle));
                     }
                 }
             }
@@ -377,23 +350,14 @@ namespace SharpMap.Layers
 
                 foreach (var features in ds.Tables)
                 {
-                    // Transform geometries if necessary
-                    if (CoordinateTransformation != null && !useCache)
+                    ApplyStyle(g, map, Style, (graphics, map1, vStyle) =>
                     {
-                        for (var i = 0; i < features.Count; i++)
-                        {
-                            features[i].Geometry = ToTarget(features[i].Geometry);
-                        }
-                    }
 
 
-                    foreach (
-                         var vStyle in
-                             stylesToRender.Where(style => style is VectorStyle && style.Enabled).Cast<VectorStyle>())
-                    {
                         if (vStyle.LineSymbolizer != null)
                         {
-                            vStyle.LineSymbolizer.Begin(g, map, features.Count);
+                            vStyle.LineSymbolizer.Begin(g, map,
+                                features.Count);
                         }
                         else
                         {
@@ -401,7 +365,9 @@ namespace SharpMap.Layers
                             //before drawing the "inline" on top.
                             if (vStyle.EnableOutline)
                             {
-                                for (var i = 0; i < features.Count; i++)
+                                for (var i = 0;
+                                    i < features.Count;
+                                    i++)
                                 {
                                     var geom = features[i].Geometry;
                                     if (geom == null) continue;
@@ -409,11 +375,16 @@ namespace SharpMap.Layers
                                     //Draw background of all line-outlines first
                                     var line = geom as ILineString;
                                     if (line != null)
-                                        VectorRenderer.DrawLineString(g, line, vStyle.Outline, map,
-                                            vStyle.LineOffset);
+                                        VectorRenderer
+                                            .DrawLineString(g,
+                                                line,
+                                                vStyle.Outline,
+                                                map,
+                                                vStyle
+                                                    .LineOffset);
                                     else if (geom is IMultiLineString)
-                                        VectorRenderer.DrawMultiLineString(g, (IMultiLineString)geom, vStyle.Outline,
-                                            map, vStyle.LineOffset);
+                                        VectorRenderer.DrawMultiLineString(g, (IMultiLineString)geom,
+                                                vStyle.Outline, map, vStyle.LineOffset);
                                 }
                             }
                         }
@@ -432,7 +403,8 @@ namespace SharpMap.Layers
                             vStyle.LineSymbolizer.Symbolize(g, map);
                             vStyle.LineSymbolizer.End(g, map);
                         }
-                    }
+
+                    });
                 }
             }
             finally
@@ -469,6 +441,39 @@ namespace SharpMap.Layers
             }
 
             return stylesToRender;
+        }
+
+        /// <summary>
+        /// Aplly style 
+        /// </summary>
+        /// <param name="g"></param>
+        /// <param name="map"></param>
+        /// <param name="style"></param>
+        /// <param name="action"></param>
+        protected static void ApplyStyle(Graphics g, Map map, IStyle style, Action<Graphics, Map, VectorStyle> action)
+        {
+            if (style == null) return;
+            if (!style.Enabled) return;
+
+            var scale = map.MapScale;
+            var zoom = map.Zoom;
+            var compare = style.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
+            if (style.MinVisible > compare || compare > style.MaxVisible) return;
+
+            var groupStyle = style as GroupStyle;
+            var vectorStyle = style as VectorStyle;
+
+            if (groupStyle != null)
+            {
+                for (var i = 0; i < groupStyle.Count; i++)
+                {
+                    ApplyStyle(g, map, style, action);
+                }
+            }
+            else if (vectorStyle != null)
+            {
+                action(g, map, vectorStyle);
+            }
         }
 
         /// <summary>
@@ -631,7 +636,7 @@ namespace SharpMap.Layers
 
         #region Data loading
 
-        private FeatureDataSet _dataCache;
+        protected FeatureDataSet _dataCache;
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
@@ -646,18 +651,19 @@ namespace SharpMap.Layers
         /// <summary>
         /// Load datas.
         /// </summary>
-        /// <param name="map"></param>
-        public override void LoadDatas(Map map)
+        /// <param name="view"></param>
+        public override void LoadDatas(IMapViewPort view)
         {
+
+            NewEnvelope = view.Envelope;
             
-            NewEnvelope = map.Envelope;
-             //LoadDatas(NewEnvelope);
             if (IsFetching)
             {
                 NeedsUpdate = true;
                 return;
             }
-
+            //if (NewEnvelope == null) return;
+            //LoadDatas(NewEnvelope);
             if (StartFetchTimer != null) StartFetchTimer.Dispose();
             StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
         }
@@ -671,13 +677,17 @@ namespace SharpMap.Layers
         {
             var oldDatas = _dataCache;
             _dataCache = null;
-            oldDatas.Dispose();
+            if (oldDatas != null)
+            {
+                oldDatas.Dispose();
+            }
         }
 
         void StartFetchTimerElapsed(object state)
         {
             if (NewEnvelope == null) return;
             LoadDatas(NewEnvelope);
+
             StartFetchTimer.Dispose();
         }
 
@@ -686,12 +696,12 @@ namespace SharpMap.Layers
             IsFetching = true;
             NeedsUpdate = false;
             var newenvelope = ToSource(envelope);
-            
+
             var ds = new FeatureDataSet();
 
             var fetcher = new FeaturesFetcher(newenvelope, ds, _dataSource, DataArrived);
             Task.Factory.StartNew(() => fetcher.FetchOnThread(null));
-            
+
         }
 
         protected void DataArrived(FeatureDataSet ds, object state = null)
@@ -718,7 +728,7 @@ namespace SharpMap.Layers
 
                 if (DataChanged != null)
                 {
-                    DataChanged(this, new DataChangedEventArgs(null,false,LayerName));
+                    DataChanged(this, new DataChangedEventArgs(null, false, LayerName, this));
                 }
 
                 OnLayerDataLoaded();
@@ -734,7 +744,7 @@ namespace SharpMap.Layers
             {
                 System.Diagnostics.Debug.WriteLine(ex);
             }
-           
+
         }
 
         public FeatureDataSet GetDatas()

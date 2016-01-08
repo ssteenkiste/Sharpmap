@@ -21,6 +21,7 @@ using System.Drawing;
 using System.Linq;
 using SharpMap.Data;
 using GeoAPI.Geometries;
+using SharpMap.Rendering;
 using SharpMap.Styles;
 #if DotSpatialProjections
 using ICoordinateTransformation = DotSpatial.Projections.ICoordinateTransformation;
@@ -196,9 +197,10 @@ namespace SharpMap.Layers
         /// </summary>
         protected override void ReleaseManagedResources()
         {
-            foreach (var layer in Layers.OfType<IDisposable>().Where(layer => layer != null))
+            foreach (var layer in Layers.OfType<IDisposable>())
+            {
                 layer.Dispose();
-            
+            }
             Layers.Clear();
             base.ReleaseManagedResources();
         }
@@ -215,7 +217,7 @@ namespace SharpMap.Layers
             //return _Layers.Find( delegate(SharpMap.Layers.Layer layer) { return layer.LayerName.Equals(name); });
             var layers = Layers.ToArray();
 
-            return layers.FirstOrDefault(t => String.Equals(t.LayerName, name, StringComparison.InvariantCultureIgnoreCase));
+            return layers.FirstOrDefault(t => string.Equals(t.LayerName, name, StringComparison.InvariantCultureIgnoreCase));
         }
 
         /// <summary>
@@ -227,15 +229,27 @@ namespace SharpMap.Layers
         {
             var layers = Layers.ToArray();
             var compare = VisibilityUnits == VisibilityUnits.ZoomLevel ? map.Zoom : map.MapScale;
-            foreach (var layer in layers)
+            foreach (var layer in layers.Where(layer => layer.Enabled && layer.MaxVisible >= compare &&
+                                                        layer.MinVisible < compare))
             {
-                if (layer.Enabled && layer.MaxVisible >= compare &&
-                    layer.MinVisible < compare)
-                    layer.Render(g, map);
+                LayerCollectionRenderer.RenderLayer(layer, g, map);
             }
         }
 
-         #region Implementation of ICanQueryLayer
+        /// <summary>
+        /// Loads the datas depending of the view.
+        /// </summary>
+        /// <param name="view"></param>
+        public override void LoadDatas(IMapViewPort view)
+        {
+            foreach (var layer in Layers.OfType<Layer>().Where(l=>l.IsLayerVisible(view)))
+            {
+                layer.LoadDatas(view);
+            }
+            //base.LoadDatas(map);
+        }
+
+        #region Implementation of ICanQueryLayer
 
         /// <summary>
         /// Returns the data associated with all the geometries that are intersected by 'geom'

@@ -238,7 +238,7 @@ namespace SharpMap.Layers
             return result;
         }
 
-        private static void GetRecursiveTiles(IList<TileInfo> result, ITileSchema schema, MemoryCache<Bitmap> bitmaps,
+        private static void GetRecursiveTiles(IList<TileInfo> result, ITileSchema schema, ITileCache<Bitmap> bitmaps,
             FileCache cache, Extent extent, IList<KeyValuePair<string, Resolution>> resolutions, int resolutionIndex, bool addAll)
         {
             if (resolutionIndex < 0 || resolutionIndex >= resolutions.Count)
@@ -288,9 +288,7 @@ namespace SharpMap.Layers
                     sourceWidth, sourceHeight,
                     GraphicsUnit.Pixel,
                     imageAttributes);
-
-                //g.Dispose();
-
+                
             }
             catch (Exception ex)
             {
@@ -315,8 +313,7 @@ namespace SharpMap.Layers
             {
                 if (cancelToken.IsCancellationRequested)
                     cancelToken.ThrowIfCancellationRequested();
-
-
+                
                 //We may have gotten the tile from another thread now..
                 if (bitmaps.Find(tileInfo.Index) != null)
                 {

@@ -172,7 +172,7 @@ namespace SharpMap
     /// </summary>
     public class MapViewportLock
     {
-        private readonly Map _map;
+        private readonly IMapViewPort _map;
         private double _minimumZoom;
         private double _maximumZoom;
         private Envelope _maximumExtents;
@@ -182,7 +182,7 @@ namespace SharpMap
         /// Creates an instance of this class
         /// </summary>
         /// <param name="map"></param>
-        public MapViewportLock(Map map)
+        public MapViewportLock(IMapViewPort map)
         {
             _map = map;
         }

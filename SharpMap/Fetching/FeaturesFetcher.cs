@@ -8,9 +8,9 @@ using SharpMap.Data.Providers;
 
 namespace SharpMap.Fetching
 {
-    internal class FeaturesFetcher
+    public class FeaturesFetcher
     {
-        internal delegate void DataArrivedDelegate(FeatureDataSet features, object state = null);
+        public delegate void DataArrivedDelegate(FeatureDataSet features, object state = null);
 
         private readonly Envelope _envelope;
         private readonly FeatureDataSet _dataSet;

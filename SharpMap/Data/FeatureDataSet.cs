@@ -794,8 +794,6 @@ namespace SharpMap.Data
     [Serializable]
     public class FeatureDataRow : DataRow
     {
-        //private FeatureDataTable tableFeatureTable;
-
         private IGeometry _geometry;
 
         public FeatureDataRow(DataRowBuilder rb)

@@ -56,7 +56,6 @@ namespace SharpMap.Rendering
         /// <param name="pen">Pen style used for rendering</param>
         /// <param name="map">Map reference</param>
         /// <param name="offset">Offset by which line will be moved to right</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawMultiLineString(Graphics g, IMultiLineString lines, Pen pen, Map map, float offset)
         {
             for (var i = 0; i < lines.NumGeometries; i++)
@@ -72,7 +71,7 @@ namespace SharpMap.Rendering
         /// <param name="points"></param>
         /// <param name="offset"></param>
         /// <returns></returns>
-        internal static PointF[] OffsetRight(PointF[] points, float offset)
+        public static PointF[] OffsetRight(PointF[] points, float offset)
         {
             var length = points.Length;
             var newPoints = new PointF[(length - 1) * 2];
@@ -124,7 +123,6 @@ namespace SharpMap.Rendering
         /// <param name="line">LineString to render</param>
         /// <param name="pen">Pen style used for rendering</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawLineString(Graphics g, ILineString line, Pen pen, Map map)
         {
             DrawLineString(g, line, pen, map, 0);
@@ -143,7 +141,7 @@ namespace SharpMap.Rendering
             if (points.Length > 1)
             {
                 var gp = new GraphicsPath();
-                if (offset != 0d)
+                if (Math.Abs(offset) > NEAR_ZERO)
                     points = OffsetRight(points, offset);
                 gp.AddLines(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
 
@@ -160,7 +158,6 @@ namespace SharpMap.Rendering
         /// <param name="pen">Outline pen style (null if no outline)</param>
         /// <param name="clip">Specifies whether polygon clipping should be applied</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawMultiPolygon(Graphics g, IMultiPolygon pols, Brush brush, Pen pen, bool clip, Map map)
         {
             for (var i = 0; i < pols.NumGeometries; i++)
@@ -179,7 +176,6 @@ namespace SharpMap.Rendering
         /// <param name="pen">Outline pen style (null if no outline)</param>
         /// <param name="clip">Specifies whether polygon clipping should be applied</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawPolygon(Graphics g, IPolygon pol, Brush brush, Pen pen, bool clip, Map map)
         {
             if (pol.ExteriorRing == null)
@@ -193,9 +189,9 @@ namespace SharpMap.Rendering
 
             //Add the exterior polygon
             if (!clip)
-                gp.AddPolygon(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
+                gp.AddPolygon(points);
             else
-                DrawPolygonClipped(gp, /*LimitValues(*/points/*, ExtremeValueLimit)*/, map.Size.Width, map.Size.Height);
+                DrawPolygonClipped(gp, points, map.Size.Width, map.Size.Height);
 
             //Add the interior polygons (holes)
             if (pol.NumInteriorRings > 0)
@@ -204,10 +200,9 @@ namespace SharpMap.Rendering
                 {
                     points = ring.TransformToImage(map);
                     if (!clip)
-                        gp.AddPolygon(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
+                        gp.AddPolygon(points);
                     else
-                        DrawPolygonClipped(gp, /*LimitValues(*/points/*, ExtremeValueLimit)*/, map.Size.Width,
-                            map.Size.Height);
+                        DrawPolygonClipped(gp, points, map.Size.Width,map.Size.Height);
                 }
             }
 
@@ -221,7 +216,7 @@ namespace SharpMap.Rendering
                 g.DrawPath(pen, gp);
         }
 
-        private static void DrawPolygonClipped(GraphicsPath gp, PointF[] polygon, int width, int height)
+        public static void DrawPolygonClipped(GraphicsPath gp, PointF[] polygon, int width, int height)
         {
             var clipState = DetermineClipState(polygon, width, height);
             switch (clipState)
@@ -340,7 +335,7 @@ namespace SharpMap.Rendering
         /// <param name="map">Map reference</param>
         /// <param name="alignment">Horizontal alignment for multi line labels. If not set <see cref="StringAlignment.Near"/> is used</param>
         /// <param name="rotationPoint">Point where the rotation should take place</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawLabel(Graphics g, PointF labelPoint, PointF offset, Font font, Color forecolor, Brush backcolor, Pen halo, float rotation, string text, Map map, LabelStyle.HorizontalAlignmentEnum alignment = LabelStyle.HorizontalAlignmentEnum.Left, PointF? rotationPoint = null)
 
         {
@@ -560,7 +555,7 @@ namespace SharpMap.Rendering
         /// <param name="size">Size of drawn Point</param>
         /// <param name="offset">Symbol offset af scale=1</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawPoint(Graphics g, IPoint point, Brush b, float size, PointF offset, Map map)
         {
             if (point == null)
@@ -582,7 +577,7 @@ namespace SharpMap.Rendering
         /// <param name="point">Point to render</param>
         /// <param name="symbolizer">Symbolizer to decorate point</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawPoint(IPointSymbolizer symbolizer, Graphics g, IPoint point, Map map)
         {
             if (point == null)
@@ -601,7 +596,7 @@ namespace SharpMap.Rendering
         /// <param name="offset">Symbol offset af scale=1</param>
         /// <param name="rotation">Symbol rotation in degrees</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawPoint(Graphics g, IPoint point, Image symbol, float symbolscale, PointF offset, float rotation, Map map)
         {
             if (point == null)
@@ -672,7 +667,7 @@ namespace SharpMap.Rendering
         /// <param name="offset">Symbol offset af scale=1</param>
         /// <param name="rotation">Symbol rotation in degrees</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawMultiPoint(Graphics g, IMultiPoint points, Image symbol, float symbolscale, PointF offset, float rotation, Map map)
         {
             for (var i = 0; i < points.NumGeometries; i++)
@@ -689,7 +684,7 @@ namespace SharpMap.Rendering
         /// <param name="points">MultiPoint to render</param>
         /// <param name="symbolizer">Symbolizer to decorate point</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawMultiPoint(IPointSymbolizer symbolizer, Graphics g, IMultiPoint points, Map map)
         {
             symbolizer.Render(map, points, g);
@@ -704,7 +699,7 @@ namespace SharpMap.Rendering
         /// <param name="size">Size of drawn Point</param>
         /// <param name="offset">Symbol offset af scale=1</param>
         /// <param name="map">Map reference</param>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        //[MethodImpl(MethodImplOptions.Synchronized)]
         public static void DrawMultiPoint(Graphics g, IMultiPoint points, Brush brush, float size, PointF offset, Map map)
         {
             for (var i = 0; i < points.NumGeometries; i++)
