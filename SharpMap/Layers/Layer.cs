@@ -386,20 +386,21 @@ namespace SharpMap.Layers
             get
             {
                 //return _Enabled;
-                return _style.Enabled;
+                return _style != null && _style.Enabled;
             }
             set
             {
-
+                if (_style == null)
+                    return;
                 if (_style.Enabled != value)
                 {
 
                     //_Enabled = value;
                     _style.Enabled = value;
 
-                  
+
                 }
-                
+
 
             }
         }

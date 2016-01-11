@@ -227,7 +227,7 @@ namespace SharpMap
             {
                 IterWireEvents(sender, e.NewItems.Cast<ILayer>());
             }
-
+            ViewChanged();
         }
 
         private void IterWireEvents(object owner, IEnumerable<ILayer> layers)
