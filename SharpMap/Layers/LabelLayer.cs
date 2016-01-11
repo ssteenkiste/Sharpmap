@@ -949,55 +949,57 @@ namespace SharpMap.Layers
                  */
                 var topFont = label.Style.GetFontForGraphics(g);
                 //
-                var path = new GraphicsPath();
-                path.AddLines(points);
+                using (var path = new GraphicsPath())
+                {
+                    path.AddLines(points);
 
-                label.TextOnPathLabel.PathColorTop = System.Drawing.Color.Transparent;
-                label.TextOnPathLabel.Text = label.Text;
-                label.TextOnPathLabel.LetterSpacePercentage = 90;
-                label.TextOnPathLabel.FillColorTop = new System.Drawing.SolidBrush(label.Style.ForeColor);
-                label.TextOnPathLabel.Font = topFont;
-                label.TextOnPathLabel.PathDataTop = path.PathData;
-                label.TextOnPathLabel.Graphics = g;
-                //label.TextOnPathLabel.ShowPath=true;
-                //label.TextOnPathLabel.PathColorTop = System.Drawing.Color.YellowGreen;
-                if (label.Style.Halo != null)
-                {
-                    label.TextOnPathLabel.ColorHalo = label.Style.Halo;
+                    label.TextOnPathLabel.PathColorTop = System.Drawing.Color.Transparent;
+                    label.TextOnPathLabel.Text = label.Text;
+                    label.TextOnPathLabel.LetterSpacePercentage = 90;
+                    label.TextOnPathLabel.FillColorTop = new System.Drawing.SolidBrush(label.Style.ForeColor);
+                    label.TextOnPathLabel.Font = topFont;
+                    label.TextOnPathLabel.PathDataTop = path.PathData;
+                    label.TextOnPathLabel.Graphics = g;
+                    //label.TextOnPathLabel.ShowPath=true;
+                    //label.TextOnPathLabel.PathColorTop = System.Drawing.Color.YellowGreen;
+                    if (label.Style.Halo != null)
+                    {
+                        label.TextOnPathLabel.ColorHalo = label.Style.Halo;
+                    }
+                    else
+                    {
+                        label.TextOnPathLabel.ColorHalo = null;// new System.Drawing.Pen(label.Style.ForeColor, (float)0.5); 
+                    }
                 }
-                else
-                {
-                    label.TextOnPathLabel.ColorHalo = null;// new System.Drawing.Pen(label.Style.ForeColor, (float)0.5); 
-                }
-                path.Dispose();
 
                 // MeasureString to get region
                 label.TextOnPathLabel.MeasureString = true;
                 label.TextOnPathLabel.DrawTextOnPath();
                 label.TextOnPathLabel.MeasureString = false;
                 // Get Region label for CollissionDetection here.
-                var pathRegion = new GraphicsPath();
-
-                if (label.TextOnPathLabel.RegionList.Count > 0)
+                using (var pathRegion = new GraphicsPath())
                 {
-                    //int idxCenter = (int)label.TextOnPathLabel.PointsText.Count / 2;
-                    //System.Drawing.Drawing2D.Matrix rotationMatrix = g.Transform.Clone();// new Matrix();
-                    //rotationMatrix.RotateAt(label.TextOnPathLabel.Angles[idxCenter], label.TextOnPathLabel.PointsText[idxCenter]);
-                    //if (label.TextOnPathLabel.PointsTextUp.Count > 0)
-                    //{
-                    //    for (int up = label.TextOnPathLabel.PointsTextUp.Count - 1; up >= 0; up--)
-                    //    {
-                    //        label.TextOnPathLabel.PointsText.Add(label.TextOnPathLabel.PointsTextUp[up]);
-                    //    }
 
-                    //}                 
-                    pathRegion.AddRectangles(label.TextOnPathLabel.RegionList.ToArray());
+                    if (label.TextOnPathLabel.RegionList.Count > 0)
+                    {
+                        //int idxCenter = (int)label.TextOnPathLabel.PointsText.Count / 2;
+                        //System.Drawing.Drawing2D.Matrix rotationMatrix = g.Transform.Clone();// new Matrix();
+                        //rotationMatrix.RotateAt(label.TextOnPathLabel.Angles[idxCenter], label.TextOnPathLabel.PointsText[idxCenter]);
+                        //if (label.TextOnPathLabel.PointsTextUp.Count > 0)
+                        //{
+                        //    for (int up = label.TextOnPathLabel.PointsTextUp.Count - 1; up >= 0; up--)
+                        //    {
+                        //        label.TextOnPathLabel.PointsText.Add(label.TextOnPathLabel.PointsTextUp[up]);
+                        //    }
 
-                    // get box for detect colission here              
-                    label.Box = new LabelBox(pathRegion.GetBounds());
-                    //g.FillRectangle(System.Drawing.Brushes.YellowGreen, label.Box);
+                        //}                 
+                        pathRegion.AddRectangles(label.TextOnPathLabel.RegionList.ToArray());
+
+                        // get box for detect colission here              
+                        label.Box = new LabelBox(pathRegion.GetBounds());
+                        //g.FillRectangle(System.Drawing.Brushes.YellowGreen, label.Box);
+                    }
                 }
-                pathRegion.Dispose();
             }
 
         }

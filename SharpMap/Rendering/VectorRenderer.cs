@@ -140,12 +140,14 @@ namespace SharpMap.Rendering
             var points = line.TransformToImage(map);
             if (points.Length > 1)
             {
-                var gp = new GraphicsPath();
-                if (Math.Abs(offset) > NEAR_ZERO)
-                    points = OffsetRight(points, offset);
-                gp.AddLines(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
+                using (var gp = new GraphicsPath())
+                {
+                    if (Math.Abs(offset) > NEAR_ZERO)
+                        points = OffsetRight(points, offset);
+                    gp.AddLines(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
 
-                g.DrawPath(pen, gp);
+                    g.DrawPath(pen, gp);
+                }
             }
         }
 
@@ -185,35 +187,38 @@ namespace SharpMap.Rendering
             if (points.Length <= 2) return;
 
             //Use a graphics path instead of DrawPolygon. DrawPolygon has a problem with several interior holes
-            var gp = new GraphicsPath();
-
-            //Add the exterior polygon
-            if (!clip)
-                gp.AddPolygon(points);
-            else
-                DrawPolygonClipped(gp, points, map.Size.Width, map.Size.Height);
-
-            //Add the interior polygons (holes)
-            if (pol.NumInteriorRings > 0)
+            using (var gp = new GraphicsPath())
             {
-                foreach (var ring in pol.InteriorRings.Cast<ILinearRing>())
+
+                //Add the exterior polygon
+                if (!clip)
+                    gp.AddPolygon(points);
+                else
+                    DrawPolygonClipped(gp, points, map.Size.Width, map.Size.Height);
+
+                //Add the interior polygons (holes)
+                if (pol.NumInteriorRings > 0)
                 {
-                    points = ring.TransformToImage(map);
-                    if (!clip)
-                        gp.AddPolygon(points);
-                    else
-                        DrawPolygonClipped(gp, points, map.Size.Width,map.Size.Height);
+                    foreach (var ring in pol.InteriorRings.Cast<ILinearRing>())
+                    {
+                        points = ring.TransformToImage(map);
+                        if (!clip)
+                            gp.AddPolygon(points);
+                        else
+                            DrawPolygonClipped(gp, points, map.Size.Width, map.Size.Height);
+                    }
                 }
+
+
+                // Only render inside of polygon if the brush isn't null or isn't transparent
+                if (brush != null && brush != Brushes.Transparent)
+                    g.FillPath(brush, gp);
+
+                // Create an outline if a pen style is available
+                if (pen != null)
+                    g.DrawPath(pen, gp);
+
             }
-
-
-            // Only render inside of polygon if the brush isn't null or isn't transparent
-            if (brush != null && brush != Brushes.Transparent)
-                g.FillPath(brush, gp);
-
-            // Create an outline if a pen style is available
-            if (pen != null)
-                g.DrawPath(pen, gp);
         }
 
         public static void DrawPolygonClipped(GraphicsPath gp, PointF[] polygon, int width, int height)
@@ -303,7 +308,7 @@ namespace SharpMap.Rendering
         public static SizeF SizeOfString74(Graphics g, string text, Font font)
         {
             var s = g.MeasureString(text, font);
-            return new SizeF(s.Width*0.74f + 1f, s.Height*0.74f);
+            return new SizeF(s.Width * 0.74f + 1f, s.Height * 0.74f);
         }
 
         /// <summary>
@@ -316,7 +321,7 @@ namespace SharpMap.Rendering
         public static SizeF SizeOfStringCeiling(Graphics g, string text, Font font)
         {
             var f = g.MeasureString(text, font);
-            return new SizeF((float) Math.Ceiling(f.Width), (float) Math.Ceiling(f.Height));
+            return new SizeF((float)Math.Ceiling(f.Width), (float)Math.Ceiling(f.Height));
         }
 
 
@@ -378,26 +383,31 @@ namespace SharpMap.Rendering
                 if (backcolor != null && backcolor != Brushes.Transparent)
                     g.FillRectangle(backcolor, labelPoint.X, labelPoint.Y, labelSize.Width, labelSize.Height);
 
-                var path = new GraphicsPath();
-                path.AddString(text, font.FontFamily, (int) font.Style, font.Size, new RectangleF(labelPoint, labelSize) /* labelPoint*/, new StringFormat {Alignment = salign} /*null*/);
-                if (halo != null)
-                    g.DrawPath(halo, path);
+                using (var path = new GraphicsPath())
+                {
+                    path.AddString(text, font.FontFamily, (int)font.Style, font.Size, new RectangleF(labelPoint, labelSize) /* labelPoint*/, new StringFormat { Alignment = salign } /*null*/);
+                    if (halo != null)
+                        g.DrawPath(halo, path);
 
-                g.FillPath(new SolidBrush(forecolor), path);
-                //g.DrawString(text, font, new System.Drawing.SolidBrush(forecolor), 0, 0);        
+                    g.FillPath(new SolidBrush(forecolor), path);
+                    //g.DrawString(text, font, new System.Drawing.SolidBrush(forecolor), 0, 0);        
+                }
                 g.Transform = t;
+
             }
             else
             {
                 if (backcolor != null && backcolor != Brushes.Transparent)
                     g.FillRectangle(backcolor, labelPoint.X, labelPoint.Y, labelSize.Width, labelSize.Height);
 
-                var path = new GraphicsPath();
-                path.AddString(text, font.FontFamily, (int) font.Style, font.Size, new RectangleF(labelPoint, labelSize) /* labelPoint*/, new StringFormat {Alignment = salign} /*null*/);
-                if (halo != null)
-                    g.DrawPath(halo, path);
-                g.FillPath(new SolidBrush(forecolor), path);
-                //g.DrawString(text, font, new System.Drawing.SolidBrush(forecolor), LabelPoint.X, LabelPoint.Y);
+                using (var path = new GraphicsPath())
+                {
+                    path.AddString(text, font.FontFamily, (int)font.Style, font.Size, new RectangleF(labelPoint, labelSize) /* labelPoint*/, new StringFormat { Alignment = salign } /*null*/);
+                    if (halo != null)
+                        g.DrawPath(halo, path);
+                    g.FillPath(new SolidBrush(forecolor), path);
+                    //g.DrawString(text, font, new System.Drawing.SolidBrush(forecolor), LabelPoint.X, LabelPoint.Y);
+                }
             }
         }
 
@@ -486,8 +496,8 @@ namespace SharpMap.Rendering
                     yout = 0;
                 }
 
-                var tinx = (xin - x1)/deltax;
-                var tiny = (yin - y1)/deltay;
+                var tinx = (xin - x1) / deltax;
+                var tiny = (yin - y1) / deltay;
 
                 float tin1;
                 float tin2;
@@ -511,8 +521,8 @@ namespace SharpMap.Rendering
 
                     if (1 >= tin2)
                     {
-                        var toutx = (xout - x1)/deltax;
-                        var touty = (yout - y1)/deltay;
+                        var toutx = (xout - x1) / deltax;
+                        var touty = (yout - y1) / deltay;
 
                         var tout = (toutx < touty) ? toutx : touty;
 
@@ -522,12 +532,12 @@ namespace SharpMap.Rendering
                             {
                                 if (0 < tin2)
                                 {
-                                    line.Add(tinx > tiny ? new PointF(xin, y1 + tinx*deltay) : new PointF(x1 + tiny*deltax, yin));
+                                    line.Add(tinx > tiny ? new PointF(xin, y1 + tinx * deltay) : new PointF(x1 + tiny * deltax, yin));
                                 }
 
                                 if (1 > tout)
                                 {
-                                    line.Add(toutx < touty ? new PointF(xout, y1 + toutx*deltay) : new PointF(x1 + touty*deltax, yout));
+                                    line.Add(toutx < touty ? new PointF(xout, y1 + toutx * deltay) : new PointF(x1 + touty * deltax, yout));
                                 }
                                 else
                                     line.Add(new PointF(x2, y2));
@@ -567,7 +577,7 @@ namespace SharpMap.Rendering
             var width = size;
             var height = size;
 
-            g.FillEllipse(b, (int) pp.X - width/2 + offset.X, (int) pp.Y - height/2 + offset.Y, width, height);
+            g.FillEllipse(b, (int)pp.X - width / 2 + offset.X, (int)pp.Y - height / 2 + offset.Y, width, height);
         }
 
         /// <summary>
@@ -631,9 +641,9 @@ namespace SharpMap.Rendering
                     //    g.DrawImage(symbol, (int) pp.X - width/2 + offset.X*symbolscale,
                     //                        (int) pp.Y - height/2 + offset.Y*symbolscale, width, height);
                     //}
-                    var width = symbol.Width*symbolscale;
-                    var height = symbol.Height*symbolscale;
-                    g.DrawImage(symbol, pp.X - width/2 + offset.X*symbolscale, pp.Y - height/2 + offset.Y*symbolscale, width, height);
+                    var width = symbol.Width * symbolscale;
+                    var height = symbol.Height * symbolscale;
+                    g.DrawImage(symbol, pp.X - width / 2 + offset.X * symbolscale, pp.Y - height / 2 + offset.Y * symbolscale, width, height);
                     g.Transform = startingTransform;
                 }
                 else
@@ -650,9 +660,9 @@ namespace SharpMap.Rendering
                     //    g.DrawImage(symbol, (int) pp.X - width/2 + offset.X*symbolscale,
                     //                        (int) pp.Y - height/2 + offset.Y*symbolscale, width, height);
                     //}
-                    var width = symbol.Width*symbolscale;
-                    var height = symbol.Height*symbolscale;
-                    g.DrawImage(symbol, pp.X - width/2 + offset.X*symbolscale, pp.Y - height/2 + offset.Y*symbolscale, width, height);
+                    var width = symbol.Width * symbolscale;
+                    var height = symbol.Height * symbolscale;
+                    g.DrawImage(symbol, pp.X - width / 2 + offset.X * symbolscale, pp.Y - height / 2 + offset.Y * symbolscale, width, height);
                 }
             }
         }
@@ -672,7 +682,7 @@ namespace SharpMap.Rendering
         {
             for (var i = 0; i < points.NumGeometries; i++)
             {
-                var point = (IPoint) points[i];
+                var point = (IPoint)points[i];
                 DrawPoint(g, point, symbol, symbolscale, offset, rotation, map);
             }
         }
@@ -704,7 +714,7 @@ namespace SharpMap.Rendering
         {
             for (var i = 0; i < points.NumGeometries; i++)
             {
-                var point = (IPoint) points[i];
+                var point = (IPoint)points[i];
                 DrawPoint(g, point, brush, size, offset, map);
             }
         }

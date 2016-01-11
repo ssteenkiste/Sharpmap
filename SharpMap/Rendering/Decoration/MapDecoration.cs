@@ -242,6 +242,7 @@ namespace SharpMap.Rendering.Decoration
             g.DrawPath(new Pen(OpacityColor(BorderColor), BorderWidth), gp);
             g.FillPath(new SolidBrush(OpacityColor(BackgroundColor)), gp);
 
+            gp.Dispose();
             //Clip region
             var oldClip = g.Clip;
             g.Clip = GetClipRegion(map);
