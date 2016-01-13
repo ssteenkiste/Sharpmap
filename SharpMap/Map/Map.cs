@@ -603,7 +603,7 @@ namespace SharpMap
         /// <param name="sourceWidth"></param>
         /// <param name="sourceHeight"></param>
         /// <param name="imageAttributes"></param>
-        public void MapNewTileAvaliableHandler(ITileAsyncLayer sender, Envelope bbox, Bitmap bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
+        public void MapNewTileAvaliableHandler(ITileAsyncLayer sender, Envelope bbox, byte[] bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
         {
             var e = MapNewTileAvaliable;
             if (e != null)

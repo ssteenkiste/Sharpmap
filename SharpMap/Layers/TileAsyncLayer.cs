@@ -56,7 +56,6 @@ namespace SharpMap.Layers
         /// </summary>
         public event DownloadProgressHandler DownloadProgressChanged;
 
-
         /// <summary>
         /// Creates an instance of this class
         /// </summary>
@@ -160,21 +159,20 @@ namespace SharpMap.Layers
                         //draws directly the bitmap
                         var bb = new Envelope(new Coordinate(info.Extent.MinX, info.Extent.MinY),
                                               new Coordinate(info.Extent.MaxX, info.Extent.MaxY));
-                        HandleMapNewTileAvaliable(map, graphics, bb, bmp,
-                                                  tileWidth, tileHeight, ia);
+                        HandleMapNewTileAvaliable(map, graphics, bb, bmp, tileWidth, tileHeight, ia);
                     }
                     else if (_fileCache != null && _fileCache.Exists(info.Index))
                     {
 
-                        var img = GetImageFromFileCache(info) as Bitmap;
-                        _bitmaps.Add(info.Index, img);
+                        var img = GetImageFromFileCache(info) as byte[];
+                        var imgStream = new MemoryStream(img);
+                        _bitmaps.Add(info.Index, imgStream);
 
                         //draws directly the bitmap
                         var btExtent = info.Extent;
                         var bb = new Envelope(new Coordinate(btExtent.MinX, btExtent.MinY),
                                               new Coordinate(btExtent.MaxX, btExtent.MaxY));
-                        HandleMapNewTileAvaliable(map, graphics, bb, img,
-                                                  tileWidth, tileHeight, ia);
+                        HandleMapNewTileAvaliable(map, graphics, bb, imgStream, tileWidth, tileHeight, ia);
                     }
                     else if (level == info.Index.Level)
                     {
@@ -219,7 +217,7 @@ namespace SharpMap.Layers
 
         }
 
-        static IEnumerable<TileInfo> GetTilesWanted(ITileSchema schema, MemoryCache<Bitmap> bitmaps, FileCache cache, Extent extent, string levelId)
+        static IEnumerable<TileInfo> GetTilesWanted(ITileSchema schema, MemoryCache<Stream> bitmaps, FileCache cache, Extent extent, string levelId)
         {
             var result = new List<TileInfo>();
 
@@ -238,7 +236,7 @@ namespace SharpMap.Layers
             return result;
         }
 
-        private static void GetRecursiveTiles(IList<TileInfo> result, ITileSchema schema, ITileCache<Bitmap> bitmaps,
+        private static void GetRecursiveTiles(IList<TileInfo> result, ITileSchema schema, ITileCache<Stream> bitmaps,
             FileCache cache, Extent extent, IList<KeyValuePair<string, Resolution>> resolutions, int resolutionIndex, bool addAll)
         {
             if (resolutionIndex < 0 || resolutionIndex >= resolutions.Count)
@@ -271,30 +269,34 @@ namespace SharpMap.Layers
             }
         }
 
-        static void HandleMapNewTileAvaliable(Map map, Graphics g, Envelope box, Bitmap bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
+        static void HandleMapNewTileAvaliable(Map map, Graphics g, Envelope box, Stream stream, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
         {
+            var min = map.WorldToImage(box.Min());
+            var max = map.WorldToImage(box.Max());
 
-            try
+            min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
+            max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
+
+            stream.Position = 0;
+            using (var bitmap = new Bitmap(stream))
             {
-                var min = map.WorldToImage(box.Min());
-                var max = map.WorldToImage(box.Max());
+                try
+                {
+                    g.DrawImage(bitmap,
+                        new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X), (int)(min.Y - max.Y)),
+                        0, 0,
+                        sourceWidth, sourceHeight,
+                        GraphicsUnit.Pixel,
+                        imageAttributes);
 
-                min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
-                max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex.Message, ex);
+                    //this can be a GDI+ Hell Exception...
+                }
+            }
 
-                g.DrawImage(bm,
-                    new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X), (int)(min.Y - max.Y)),
-                    0, 0,
-                    sourceWidth, sourceHeight,
-                    GraphicsUnit.Pixel,
-                    imageAttributes);
-                
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message, ex);
-                //this can be a GDI+ Hell Exception...
-            }
 
         }
 
@@ -307,13 +309,13 @@ namespace SharpMap.Layers
         /// <param name="bitmaps"></param>
         /// <param name="retry"></param>
         /// <returns>true if thread finished without getting cancellation signal, false = cancelled</returns>
-        private bool GetTileOnThread(CancellationToken cancelToken, ITileProvider tileProvider, TileInfo tileInfo, MemoryCache<Bitmap> bitmaps, bool retry)
+        private bool GetTileOnThread(CancellationToken cancelToken, ITileProvider tileProvider, TileInfo tileInfo, MemoryCache<Stream> bitmaps, bool retry)
         {
             try
             {
                 if (cancelToken.IsCancellationRequested)
                     cancelToken.ThrowIfCancellationRequested();
-                
+
                 //We may have gotten the tile from another thread now..
                 if (bitmaps.Find(tileInfo.Index) != null)
                 {
@@ -328,20 +330,18 @@ namespace SharpMap.Layers
                     return true;
                 //cancelToken.ThrowIfCancellationRequested();
 
-                using (var ms = new MemoryStream(bytes))
-                {
-                    var bitmap = new Bitmap(ms);
-                    bitmaps.Add(tileInfo.Index, bitmap);
-                    if (_fileCache != null && !_fileCache.Exists(tileInfo.Index))
-                    {
-                        AddImageToFileCache(tileInfo, bitmap);
-                    }
 
-                    if (cancelToken.IsCancellationRequested)
-                        return true;
-                        //cancelToken.ThrowIfCancellationRequested();
-                    OnMapNewTileAvaliable(tileInfo, bitmap);
+                bitmaps.Add(tileInfo.Index, new MemoryStream(bytes));
+                if (_fileCache != null && !_fileCache.Exists(tileInfo.Index))
+                {
+                    AddImageToFileCache(tileInfo, bytes);
                 }
+
+                if (cancelToken.IsCancellationRequested)
+                    return true;
+                //cancelToken.ThrowIfCancellationRequested();
+                OnMapNewTileAvaliable(tileInfo, bytes);
+                //}
                 return true;
             }
             catch (WebException ex)
@@ -361,17 +361,19 @@ namespace SharpMap.Layers
                         var tileHeight = _source.Schema.GetTileHeight(tileInfo.Index.Level);
                         //an issue with this method is that one an error tile is in the memory cache it will stay even
                         //if the error is resolved. PDD.
-                        var bitmap = new Bitmap(tileWidth, tileHeight);
-                        using (var graphics = Graphics.FromImage(bitmap))
-                        {
-                            graphics.DrawString(ex.Message, new Font(FontFamily.GenericSansSerif, 12), new SolidBrush(Color.Black),
-                                new RectangleF(0, 0, tileWidth, tileHeight));
-                        }
-                        //Draw the Timeout Tile
-                        OnMapNewTileAvaliable(tileInfo, bitmap);
-                        //With timeout we don't add to the internal cache
-                        //bitmaps.Add(tileInfo.Index, bitmap);
-                        bitmap.Dispose();
+
+                        //TODO : A gérer !!!
+                        //var bitmap = new Bitmap(tileWidth, tileHeight);
+                        //using (var graphics = Graphics.FromImage(bitmap))
+                        //{
+                        //    graphics.DrawString(ex.Message, new Font(FontFamily.GenericSansSerif, 12), new SolidBrush(Color.Black),
+                        //        new RectangleF(0, 0, tileWidth, tileHeight));
+                        //}
+                        ////Draw the Timeout Tile
+                        //OnMapNewTileAvaliable(tileInfo, bitmap);
+                        ////With timeout we don't add to the internal cache
+                        ////bitmaps.Add(tileInfo.Index, bitmap);
+                        //bitmap.Dispose();
                     }
                     return true;
                 }
@@ -393,7 +395,7 @@ namespace SharpMap.Layers
             }
         }
 
-        private void OnMapNewTileAvaliable(TileInfo tileInfo, Bitmap bitmap)
+        private void OnMapNewTileAvaliable(TileInfo tileInfo, byte[] bitmap)
         {
             if (_onlyRedrawWhenComplete)
                 return;
@@ -411,7 +413,7 @@ namespace SharpMap.Layers
                     var tileWidth = _source.Schema.GetTileWidth(tileInfo.Index.Level);
                     var tileHeight = _source.Schema.GetTileHeight(tileInfo.Index.Level);
                     MapNewTileAvaliable(this, bb, bitmap, tileWidth, tileHeight, ia);
-                    
+
                 }
             }
         }

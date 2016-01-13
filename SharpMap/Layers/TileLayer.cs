@@ -41,7 +41,7 @@ namespace SharpMap.Layers
         /// An in-memory tile cache
         /// </summary>
         [NonSerialized]
-        protected MemoryCache<Bitmap> _bitmaps = new MemoryCache<Bitmap>(200, 300);
+        protected MemoryCache<Stream> _bitmaps = new MemoryCache<Stream>(200, 300);
 
         /// <summary>
         /// A file cache
@@ -177,7 +177,7 @@ namespace SharpMap.Layers
                 using (var g = Graphics.FromImage(bmp))
                 {
                     g.InterpolationMode = InterpolationMode;
-                    g.Transform = graphics.Transform.Clone();
+                    g.Transform = graphics.Transform;
 
                     var extent = new Extent(map.Envelope.MinX, map.Envelope.MinY,
                         map.Envelope.MaxX, map.Envelope.MaxY);
@@ -187,7 +187,7 @@ namespace SharpMap.Layers
                     var tileHeight = _source.Schema.GetTileWidth(level);
 
                     IList<WaitHandle> waitHandles = new List<WaitHandle>();
-                    var toRender = new ConcurrentDictionary<TileIndex, Bitmap>();
+                    var toRender = new ConcurrentDictionary<TileIndex, Stream>();
                     var takenFromCache = new ConcurrentDictionary<TileIndex, bool>();
                     foreach (var info in tiles)
                     {
@@ -200,9 +200,10 @@ namespace SharpMap.Layers
                         }
                         if (_fileCache != null && _fileCache.Exists(info.Index))
                         {
-                            var tileBitmap = GetImageFromFileCache(info) as Bitmap;
-                            _bitmaps.Add(info.Index, tileBitmap);
-                            toRender.TryAdd(info.Index, tileBitmap);
+                            var tileBitmap = GetImageFromFileCache(info) as byte[];
+                            var stream = new MemoryStream(tileBitmap);
+                            _bitmaps.Add(info.Index, stream);
+                            toRender.TryAdd(info.Index, stream);
                             takenFromCache.TryAdd(info.Index, true);
                             continue;
                         }
@@ -228,46 +229,53 @@ namespace SharpMap.Layers
                         {
                             if (!toRender.ContainsKey(info.Index))
                                 continue;
+                            var stream = toRender[info.Index]; //_bitmaps.Find(info.Index);
+                            if (stream == null) continue;
 
-                            var bitmap = toRender[info.Index]; //_bitmaps.Find(info.Index);
-                            if (bitmap == null) continue;
-
-                            var min = map.WorldToImage(new Coordinate(info.Extent.MinX, info.Extent.MinY));
-                            var max = map.WorldToImage(new Coordinate(info.Extent.MaxX, info.Extent.MaxY));
-
-                            min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
-                            max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
-
-                            try
+                           //using (var stream = new MemoryStream(buffer))
                             {
-                                g.DrawImage(bitmap,
-                                    new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X),
-                                        (int)(min.Y - max.Y)),
-                                    0, 0, tileWidth, tileHeight,
-                                    GraphicsUnit.Pixel,
-                                    ia);
-                            }
-                            catch (Exception ee)
-                            {
-                                Logger.Error(ee.Message);
-                            }
+                                stream.Position = 0;
+                                using (var bitmap = new Bitmap(stream))
+                                {
 
+                                    var min = map.WorldToImage(new Coordinate(info.Extent.MinX, info.Extent.MinY));
+                                    var max = map.WorldToImage(new Coordinate(info.Extent.MaxX, info.Extent.MaxY));
+
+                                    min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
+                                    max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
+
+                                    try
+                                    {
+                                        g.DrawImage(bitmap,
+                                            new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X),
+                                                (int)(min.Y - max.Y)),
+                                            0, 0, tileWidth, tileHeight,
+                                            GraphicsUnit.Pixel,
+                                            ia);
+                                    }
+                                    catch (Exception ee)
+                                    {
+                                        Logger.Error(ee.Message);
+                                    }
+                                }
+
+                            }
                         }
-                    }
 
-                    //Add rendered tiles to cache
-                    foreach (
-                        var kvp in
-                            toRender.Where(kvp => takenFromCache.ContainsKey(kvp.Key) && !takenFromCache[kvp.Key]))
-                    {
-                        _bitmaps.Add(kvp.Key, kvp.Value);
-                    }
+                        //Add rendered tiles to cache
+                        foreach (
+                            var kvp in
+                                toRender.Where(kvp => takenFromCache.ContainsKey(kvp.Key) && !takenFromCache[kvp.Key]))
+                        {
+                            _bitmaps.Add(kvp.Key, kvp.Value);
+                        }
 
-                    using (var transform = new Matrix())
-                    {
-                        graphics.Transform = transform;
-                        graphics.DrawImageUnscaled(bmp, 0, 0);
-                        graphics.Transform = g.Transform;
+                        using (var transform = new Matrix())
+                        {
+                            graphics.Transform = transform;
+                            graphics.DrawImageUnscaled(bmp, 0, 0);
+                            graphics.Transform = g.Transform;
+                        }
                     }
                 }
             }
@@ -275,7 +283,7 @@ namespace SharpMap.Layers
 
         #endregion
 
-        #region Private methods
+            #region Private methods
 
         private void GetTileOnThread(object parameter)
         {
@@ -284,7 +292,7 @@ namespace SharpMap.Layers
             var tileProvider = (ITileProvider)parameters[0];
             var tileInfo = (TileInfo)parameters[1];
             //MemoryCache<Bitmap> bitmaps = (MemoryCache<Bitmap>)parameters[2];
-            var bitmaps = (ConcurrentDictionary<TileIndex, Bitmap>)parameters[2];
+            var bitmaps = (ConcurrentDictionary<TileIndex, byte[]>)parameters[2];
             var autoResetEvent = (AutoResetEvent)parameters[3];
             var retry = (bool)parameters[4];
             var takenFromCache = (IDictionary<TileIndex, bool>)parameters[5];
@@ -293,8 +301,7 @@ namespace SharpMap.Layers
             try
             {
                 var bytes = tileProvider.GetTile(tileInfo);
-                var bitmap = new Bitmap(new MemoryStream(bytes));
-                bitmaps.TryAdd(tileInfo.Index, bitmap);
+                bitmaps.TryAdd(tileInfo.Index, bytes);
 
                 // this bitmap will later be memory cached
                 takenFromCache.Add(tileInfo.Index, false);
@@ -302,7 +309,7 @@ namespace SharpMap.Layers
                 // add to persistent cache if enabled
                 if (_fileCache != null)
                 {
-                    AddImageToFileCache(tileInfo, bitmap);
+                    AddImageToFileCache(tileInfo, bytes);
                 }
 
             }
@@ -314,30 +321,31 @@ namespace SharpMap.Layers
                     setEvent = false;
                     return;
                 }
-                if (_showErrorInTile)
-                {
-                    try
-                    {
-                        //an issue with this method is that one an error tile is in the memory cache it will stay even
-                        //if the error is resolved. PDD.
-                        var tileWidth = _source.Schema.GetTileWidth(tileInfo.Index.Level);
-                        var tileHeight = _source.Schema.GetTileHeight(tileInfo.Index.Level);
-                        var bitmap = new Bitmap(tileWidth, tileHeight);
-                        using (var graphics = Graphics.FromImage(bitmap))
-                        {
-                            graphics.DrawString(ex.Message, new Font(FontFamily.GenericSansSerif, 12),
-                                                new SolidBrush(Color.Black),
-                                                new RectangleF(0, 0, tileWidth, tileHeight));
-                        }
-                        bitmaps.TryAdd(tileInfo.Index, bitmap);
-                    }
-                    catch (Exception e)
-                    {
-                        // we don't want fatal exceptions here!
-                        Logger.Error(e);
-                    }
+                //TODO : gérer tuile 
+                //if (_showErrorInTile)
+                //{
+                //    try
+                //    {
+                //        //an issue with this method is that one an error tile is in the memory cache it will stay even
+                //        //if the error is resolved. PDD.
+                //        var tileWidth = _source.Schema.GetTileWidth(tileInfo.Index.Level);
+                //        var tileHeight = _source.Schema.GetTileHeight(tileInfo.Index.Level);
+                //        var bitmap = new Bitmap(tileWidth, tileHeight);
+                //        using (var graphics = Graphics.FromImage(bitmap))
+                //        {
+                //            graphics.DrawString(ex.Message, new Font(FontFamily.GenericSansSerif, 12),
+                //                                new SolidBrush(Color.Black),
+                //                                new RectangleF(0, 0, tileWidth, tileHeight));
+                //        }
+                //        bitmaps.TryAdd(tileInfo.Index, bitmap);
+                //    }
+                //    catch (Exception e)
+                //    {
+                //        // we don't want fatal exceptions here!
+                //        Logger.Error(e);
+                //    }
 
-                }
+                //}
             }
             catch (Exception ex)
             {
@@ -353,17 +361,10 @@ namespace SharpMap.Layers
         /// Method to add a tile image to the <see cref="FileCache"/>
         /// </summary>
         /// <param name="tileInfo">The tile info</param>
-        /// <param name="bitmap">The tile image</param>
-        protected void AddImageToFileCache(TileInfo tileInfo, Bitmap bitmap)
+        /// <param name="data">The tile image</param>
+        protected void AddImageToFileCache(TileInfo tileInfo, byte[] data)
         {
-            using (var ms = new MemoryStream())
-            {
-                bitmap.Save(ms, _ImageFormat);
-                ms.Seek(0, SeekOrigin.Begin);
-                var data = new byte[ms.Length];
-                ms.Read(data, 0, data.Length);
-                _fileCache.Add(tileInfo.Index, data);
-            }
+            _fileCache.Add(tileInfo.Index, data);
         }
 
         /// <summary>
@@ -371,27 +372,36 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="info">The tile info</param>
         /// <returns>The tile-image, if already cached</returns>
-        protected Image GetImageFromFileCache(TileInfo info)
+        protected byte[] GetImageFromFileCache(TileInfo info)
         {
-            using (var ms = new MemoryStream(_fileCache.Find(info.Index)))
-            {
-                return Image.FromStream(ms);
-            }
+            return _fileCache.Find(info.Index);
+
+            //using (var ms = new MemoryStream(_fileCache.Find(info.Index)))
+            //{
+            //    return Image.FromStream(ms);
+            //}
         }
         #endregion
 
         public void OnDeserialization(object sender)
         {
             if (_bitmaps == null)
-                _bitmaps = new MemoryCache<Bitmap>(200, 300);
+                _bitmaps = new MemoryCache<Stream>(200, 300);
         }
 
         protected override void ReleaseManagedResources()
         {
             base.ReleaseManagedResources();
 
+            _fileCache = null;
+
+            if (_bitmaps != null)
+            {
+                _bitmaps.Dispose();
+            }
+
             var source = _source as IDisposable;
-            if (source != null  )
+            if (source != null)
             {
                 source.Dispose();
             }

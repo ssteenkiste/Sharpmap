@@ -48,7 +48,7 @@ namespace SharpMap.Rendering
         public void Render(Graphics g, Map map, bool allowParallel)
         {
             _map = map;
-            
+
             g.PageUnit = GraphicsUnit.Pixel;
 
             if (AllowParallel && allowParallel && ParallelHeuristic(map.Size, g.DpiX, _layers.Length))
@@ -91,7 +91,7 @@ namespace SharpMap.Rendering
         {
             foreach (var layer in _layers)
             {
-                if(layer.IsLayerVisible(_map))
+                if (layer.IsLayerVisible(_map))
                 {
                     RenderLayer(layer, g, _map);
                 }
@@ -126,21 +126,18 @@ namespace SharpMap.Rendering
 
             var layer = _layers[layerIndex];
 
-            if (layer!=null && layer.Enabled)
+            if (layer != null && layer.IsLayerVisible(_map))
             {
-                var compare = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? _map.Zoom : _map.MapScale;
-                if (layer.MaxVisible >= compare && layer.MinVisible < compare)
+                var image = _images[layerIndex] = new Bitmap(_map.Size.Width, _map.Size.Height, PixelFormat.Format32bppArgb);
+                using (var g = Graphics.FromImage(image))
                 {
-                    var image = _images[layerIndex] = new Bitmap(_map.Size.Width, _map.Size.Height, PixelFormat.Format32bppArgb);
-                    using (var g = Graphics.FromImage(image))
-                    {
-                        g.PageUnit = GraphicsUnit.Pixel;
-                        //ApplyTransform(_transform, g);
+                    g.PageUnit = GraphicsUnit.Pixel;
+                    //ApplyTransform(_transform, g);
 
-                        g.Clear(Color.Transparent);
-                        RenderLayer(layer, g, _map);
-                    }
+                    g.Clear(Color.Transparent);
+                    RenderLayer(layer, g, _map);
                 }
+
             }
         }
 
