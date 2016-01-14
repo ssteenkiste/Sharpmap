@@ -136,6 +136,7 @@ namespace SharpMap
         public static NumberFormatInfo NumberFormatEnUs = new CultureInfo("en-US", false).NumberFormat;
 
         #region Fields
+
         private readonly List<IMapDecoration> _decorations = new List<IMapDecoration>();
 
         private Color _backgroundColor;
@@ -239,7 +240,7 @@ namespace SharpMap
                 var l = layer as Layer;
                 if (l != null)
                 {
-                    l.StyleChanged += OnStyleChanged;
+                    l.StyleChanged += OnLayerStyleChanged;
                 }
 
                 var tileAsyncLayer = layer as ITileAsyncLayer;
@@ -276,7 +277,7 @@ namespace SharpMap
             }
         }
 
-        private void OnStyleChanged(object sender, EventArgs e)
+        private void OnLayerStyleChanged(object sender, EventArgs e)
         {
             var layer = sender as Layer;
 
@@ -297,7 +298,7 @@ namespace SharpMap
                 var l = layer as Layer;
                 if (l != null)
                 {
-                    l.StyleChanged -= OnStyleChanged;
+                    l.StyleChanged -= OnLayerStyleChanged;
                 }
 
                 var tileAsyncLayer = layer as ITileAsyncLayer;
