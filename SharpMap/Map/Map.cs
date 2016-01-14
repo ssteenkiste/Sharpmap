@@ -283,7 +283,14 @@ namespace SharpMap
 
             if (layer != null)
             {
-                layer.LoadDatas(this);
+                if (layer.Enabled)
+                {
+                    layer.LoadDatas(this);
+                }
+                else
+                {
+                    OnRefreshNeeded(EventArgs.Empty);
+                }
             }
         }
 

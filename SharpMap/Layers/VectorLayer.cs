@@ -747,6 +747,10 @@ namespace SharpMap.Layers
 
         }
 
+        /// <summary>
+        /// Gets the datas
+        /// </summary>
+        /// <returns></returns>
         public FeatureDataSet GetDatas()
         {
             return _dataCache;
