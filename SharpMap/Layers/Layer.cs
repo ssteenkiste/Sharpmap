@@ -16,10 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 #if !DotSpatialProjections
 using GeoAPI.CoordinateSystems.Transformations;
 #else
@@ -99,8 +96,7 @@ namespace SharpMap.Layers
             if (StyleChanged != null)
                 StyleChanged(this, eventArgs);
         }
-
-
+        
         /// <summary>
         /// Event raised when the layers's <see cref="LayerName"/> property has changed
         /// </summary>
@@ -129,13 +125,11 @@ namespace SharpMap.Layers
         private int _srid = -1;
         private int? _targetSrid;
 
-        // ReSharper disable PublicConstructorInAbstractClass
         ///<summary>
         /// Creates an instance of this class using the given Style
         ///</summary>
         ///<param name="style"></param>
         public Layer(Style style)
-        // ReSharper restore PublicConstructorInAbstractClass
         {
             _style = style;
         }
@@ -143,7 +137,7 @@ namespace SharpMap.Layers
         /// <summary>
         /// Creates an instance of this class
         /// </summary>
-        protected Layer() //Style style)
+        protected Layer()
         {
             _style = new Style();
         }
@@ -271,8 +265,6 @@ namespace SharpMap.Layers
             }
         }
 
-        //public abstract SharpMap.CoordinateSystems.CoordinateSystem CoordinateSystem { get; set; }
-
         /// <summary>
         /// Renders the layer
         /// </summary>
@@ -306,7 +298,7 @@ namespace SharpMap.Layers
         /// <summary>
         /// Loads the datas
         /// </summary>
-        /// <param name="map"></param>
+        /// <param name="view">The map view port.</param>
         public virtual void LoadDatas(IMapViewPort view)
         {
             OnLayerDataLoaded();
@@ -322,7 +314,6 @@ namespace SharpMap.Layers
         }
 
         #endregion
-
 
         #region Properties
 
@@ -394,18 +385,12 @@ namespace SharpMap.Layers
                     return;
                 if (_style.Enabled != value)
                 {
-
                     //_Enabled = value;
                     _style.Enabled = value;
-
-
+                    OnStyleChanged(EventArgs.Empty);
                 }
-
-
             }
         }
-
-
 
         /// <summary>
         /// Gets or sets the Style for this Layer

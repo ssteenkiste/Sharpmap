@@ -236,6 +236,12 @@ namespace SharpMap
             {
                 _layersPerGroup[owner].Add(layer);
 
+                var l = layer as Layer;
+                if (l != null)
+                {
+                    l.StyleChanged += OnStyleChanged;
+                }
+
                 var tileAsyncLayer = layer as ITileAsyncLayer;
                 if (tileAsyncLayer != null)
                 {
@@ -270,6 +276,16 @@ namespace SharpMap
             }
         }
 
+        private void OnStyleChanged(object sender, EventArgs e)
+        {
+            var layer = sender as Layer;
+
+            if (layer != null)
+            {
+                layer.LoadDatas(this);
+            }
+        }
+
         private void IterUnHookEvents(object owner, IEnumerable<ILayer> layers)
         {
             var toBeRemoved = new List<ILayer>();
@@ -277,6 +293,12 @@ namespace SharpMap
             foreach (var layer in layers)
             {
                 toBeRemoved.Add(layer);
+
+                var l = layer as Layer;
+                if (l != null)
+                {
+                    l.StyleChanged -= OnStyleChanged;
+                }
 
                 var tileAsyncLayer = layer as ITileAsyncLayer;
                 if (tileAsyncLayer != null)
@@ -381,6 +403,32 @@ namespace SharpMap
         {
             if (DataChanged != null)
                 DataChanged(this, e);
+        }
+
+        /// <summary>
+        /// Aborts fetching opération.
+        /// </summary>
+        void AbortFetch()
+        {
+            if (Layers != null)
+            {
+                foreach (var asyncFetcher in Layers.OfType<IAsyncDataFetcher>())
+                {
+                    asyncFetcher.AbortFetch();
+                }
+            }
+            if (BackgroundLayer != null)
+            {
+                foreach (var asyncFetcher in BackgroundLayer.OfType<IAsyncDataFetcher>())
+                {
+                    asyncFetcher.AbortFetch();
+                }
+            }
+            if (VariableLayers != null)
+            {
+                foreach (var asyncFetcher in VariableLayers.OfType<IAsyncDataFetcher>())
+                    asyncFetcher.AbortFetch();
+            }
         }
 
         #region IDisposable Members
@@ -638,7 +686,7 @@ namespace SharpMap
                 throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
 
             //Pauses the timer for VariableLayer
-            //VariableLayerCollection.Pause = true;
+            VariableLayerCollection.Pause = true;
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0) && (_variableLayers == null || _variableLayers.Count == 0))
                 throw new InvalidOperationException("No layers to render");
@@ -663,11 +711,11 @@ namespace SharpMap
                         scale = MapScale;
                     }
 
-                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
-
                     OnLayerRendering(layer, LayerCollectionType.Background);
-                    if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
+
+                    if (layer.IsLayerVisible(this))
                     {
+
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
 
@@ -686,13 +734,14 @@ namespace SharpMap
                     {
                         scale = MapScale;
                     }
-                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
+
                     OnLayerRendering(layer, LayerCollectionType.Static);
 
-                    if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
+                    if (layer.IsLayerVisible(this))
                     {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
+
                     OnLayerRendered(layer, LayerCollectionType.Static);
                 }
             }
@@ -706,14 +755,13 @@ namespace SharpMap
                     {
                         scale = MapScale;
                     }
-                    var visibleLevel = layer.VisibilityUnits == VisibilityUnits.ZoomLevel ? zoom : scale;
-                    if (layer.Enabled && layer.MaxVisible >= visibleLevel && layer.MinVisible < visibleLevel)
+
+                    if (layer.IsLayerVisible(this))
                     {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
                 }
             }
-
 
             // Render all map decorations
             foreach (var mapDecoration in _decorations)
@@ -721,7 +769,7 @@ namespace SharpMap
                 mapDecoration.Render(g, this);
             }
             //Resets the timer for VariableLayer
-            //VariableLayerCollection.Pause = false;
+            VariableLayerCollection.Pause = false;
 
             OnMapRendered(g);
         }
@@ -781,7 +829,6 @@ namespace SharpMap
             }
         }
 
-
         /// <summary>
         /// Renders the map using the provided <see cref="Graphics"/> object.
         /// </summary>
@@ -834,7 +881,9 @@ namespace SharpMap
                 g.Transform = newTransform;
             }
             if (!drawTransparent)
+            {
                 g.Clear(BackColor);
+            }
 
             g.PageUnit = GraphicsUnit.Pixel;
 
@@ -845,12 +894,6 @@ namespace SharpMap
                     LayerCollectionRenderer.RenderLayer(layer, g, this);
                 }
             }
-
-            //LayerCollectionRenderer.AllowParallel = layerCollectionType == LayerCollectionType.Static;
-            //using (var lcr = new LayerCollectionRenderer(lc, newTransform))
-            //{
-            //    lcr.Render(g, this, layerCollectionType == LayerCollectionType.Static);
-            //}
 
             g.Transform = transform;
             if (layerCollectionType == LayerCollectionType.Static)
@@ -865,9 +908,8 @@ namespace SharpMap
             }
 
             VariableLayerCollection.Pause = false;
-
         }
-    
+
         #endregion
 
         /// <summary>
@@ -1235,6 +1277,9 @@ namespace SharpMap
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public void ViewChanged()
         {
             LoadDatas();
