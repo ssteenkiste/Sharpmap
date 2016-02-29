@@ -1,8 +1,5 @@
 ﻿using BruTile;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace SharpMap.Fetching
 {
@@ -21,6 +18,10 @@ namespace SharpMap.Fetching
             _fetchTileCompleted = fetchTileCompleted;
         }
 
+        /// <summary>
+        /// Fetchs a tile.
+        /// </summary>
+        /// <param name="state"></param>
         public void FetchTile(object state)
         {
             Exception error = null;
