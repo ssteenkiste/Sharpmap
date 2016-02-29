@@ -1,8 +1,4 @@
 ﻿using GeoAPI.Geometries;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace SharpMap
 {
@@ -10,6 +6,8 @@ namespace SharpMap
     {
         double MapScale
         { get; set; }
+        double PixelSize
+        { get;  }
 
         double Zoom
         { get; set; }
