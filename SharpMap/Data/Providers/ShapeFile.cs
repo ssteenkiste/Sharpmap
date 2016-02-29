@@ -762,7 +762,7 @@ namespace SharpMap.Data.Providers
 
                 if (fdr == null)
                 {
-                    fdr = GetFeature(oid);
+                   fdr = getFeature(oid, dbf.NewTable, br, dbf);
                 }
 
                 return fdr.Geometry;
