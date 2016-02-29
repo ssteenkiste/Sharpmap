@@ -120,13 +120,13 @@ namespace SharpMap.Layers
                     var layerEnvelope = Layers[i].Envelope;
                     if (layerEnvelope != null)
                     {
-                        if(bbox == null)
+                        if (bbox == null)
                             bbox = new Envelope(layerEnvelope);
                         else
                             bbox.ExpandToInclude(layerEnvelope);
                     }
                 }
-                    
+
                 return bbox;
             }
         }
@@ -228,9 +228,7 @@ namespace SharpMap.Layers
         public override void Render(Graphics g, Map map)
         {
             var layers = Layers.ToArray();
-            var compare = VisibilityUnits == VisibilityUnits.ZoomLevel ? map.Zoom : map.MapScale;
-            foreach (var layer in layers.Where(layer => layer.Enabled && layer.MaxVisible >= compare &&
-                                                        layer.MinVisible < compare))
+            foreach (var layer in Layers.Where(l => l.IsLayerVisible(map)))
             {
                 LayerCollectionRenderer.RenderLayer(layer, g, map);
             }
@@ -242,7 +240,7 @@ namespace SharpMap.Layers
         /// <param name="view"></param>
         public override void LoadDatas(IMapViewPort view)
         {
-            foreach (var layer in Layers.OfType<Layer>().Where(l=>l.IsLayerVisible(view)))
+            foreach (var layer in Layers.OfType<Layer>().Where(l => l.IsLayerVisible(view)))
             {
                 layer.LoadDatas(view);
             }
@@ -283,7 +281,7 @@ namespace SharpMap.Layers
             }
         }
 
-         #endregion
+        #endregion
 
         /// <summary>
         /// Create an empty new LayerGroup instance.
@@ -322,7 +320,7 @@ namespace SharpMap.Layers
                 {
                     var cloneable = layer as ICloneable;
                     if (cloneable != null)
-                        clonedGroup.Layers.Add((ILayer) cloneable.Clone());
+                        clonedGroup.Layers.Add((ILayer)cloneable.Clone());
                     else
                         clonedGroup.Layers.Add(layer);
                 }
