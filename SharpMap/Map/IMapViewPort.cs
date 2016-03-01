@@ -1,4 +1,5 @@
 ﻿using GeoAPI.Geometries;
+using System.Drawing;
 
 namespace SharpMap
 {
@@ -6,8 +7,31 @@ namespace SharpMap
     {
         double MapScale
         { get; set; }
+
+        Size Size
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Height of map in world units
+        /// </summary>
+        /// <returns></returns>
+        double MapHeight
+        {
+            get;
+        }
+
+        double PixelWidth
+        { get; }
         double PixelSize
-        { get;  }
+        { get; }
+        double PixelHeight
+        { get; }
+        double PixelAspectRatio
+        {
+            get;
+        }
 
         double Zoom
         { get; set; }
@@ -24,6 +48,18 @@ namespace SharpMap
             set;
         }
 
+        /// <summary>
+        /// Center of map in WCS
+        /// </summary>
+        Coordinate Center
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Gets the extend;
+        /// </summary>
+        /// <returns></returns>
         Envelope GetExtents();
 
         /// <summary>
@@ -31,7 +67,7 @@ namespace SharpMap
         /// </summary>
         Envelope Envelope
         {
-            get; 
+            get;
         }
 
         Envelope MaximumExtents
@@ -45,5 +81,17 @@ namespace SharpMap
             get;
             set;
         }
+
+        #region Transformations
+
+        PointF WorldToImage(Coordinate p);
+
+        Coordinate ImageToWorld(PointF p);
+
+        Coordinate ImageToWorld(PointF p, bool careAboutMapTransform);
+
+        PointF WorldToImage(Coordinate p, bool careAboutMapTransform);
+
+        #endregion
     }
 }

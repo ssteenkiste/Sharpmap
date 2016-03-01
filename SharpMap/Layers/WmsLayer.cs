@@ -579,7 +579,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             if (Logger.IsDebugEnabled)
                 Logger.Debug("Rendering wmslayer: " + LayerName);

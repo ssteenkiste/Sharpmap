@@ -76,7 +76,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        void Render(Graphics g, Map map);
+        void Render(Graphics g, IMapViewPort map);
 
         ///// <summary>
         ///// Loads the layer datas.
@@ -84,7 +84,9 @@ namespace SharpMap.Layers
         //void LoadDatas(Map map);
     }
 
-
+    /// <summary>
+    /// Ilayer extensions.
+    /// </summary>
     public static class LayerExtensions
     {
         /// <summary>
@@ -106,6 +108,13 @@ namespace SharpMap.Layers
             {
                 return false;
             }
+
+            if (layer.Envelope == null)
+                return false;
+
+            // Does the layer intersect the viewport at all
+            if (!layer.Envelope.Intersects(view.Envelope))
+                return false;
 
             return true;
         }

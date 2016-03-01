@@ -94,7 +94,7 @@ namespace SharpMap.Rendering.Decoration
         /// <param name="g"></param>
         /// <param name="map"></param>
         /// <returns>The</returns>
-        protected override Size InternalSize(Graphics g, Map map)
+        protected override Size InternalSize(Graphics g, IMapViewPort map)
         {
             var s = g.MeasureString(Text, Font);
             return new Size((int)Math.Ceiling(s.Width), (int)Math.Ceiling(s.Height));
@@ -105,7 +105,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        protected override void OnRender(Graphics g, Map map)
+        protected override void OnRender(Graphics g, IMapViewPort map)
         {
             var layoutRectangle = g.ClipBounds;
             var b = new SolidBrush(OpacityColor(ForeColor));

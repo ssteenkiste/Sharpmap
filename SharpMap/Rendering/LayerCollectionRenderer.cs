@@ -147,7 +147,7 @@ namespace SharpMap.Rendering
         /// <param name="layer"></param>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        public static void RenderLayer(ILayer layer, Graphics g, Map map)
+        public static void RenderLayer(ILayer layer, Graphics g, IMapViewPort map)
         {
             try
             {

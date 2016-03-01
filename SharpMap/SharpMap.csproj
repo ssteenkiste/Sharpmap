@@ -223,6 +223,7 @@
     <Compile Include="Layers\VariableLayerCollection.cs" />
     <Compile Include="Layers\VectorLayer.cs" />
     <Compile Include="Map\IMapViewPort.cs" />
+    <Compile Include="Map\MapViewPort.cs" />
     <Compile Include="Rendering\LayerRenderingEventArgs.cs" />
     <Compile Include="Rendering\IMapRenderer.cs" />
     <Compile Include="Rendering\MapRenderingResult.cs" />

@@ -225,7 +225,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             var layers = Layers.ToArray();
             foreach (var layer in Layers.Where(l => l.IsLayerVisible(map)))

@@ -158,7 +158,7 @@ namespace SharpMap.Layers
             set { _baseLayer.Proj4Projection = value; }
         }
 
-        void ILayer.Render(Graphics g, Map map)
+        void ILayer.Render(Graphics g, IMapViewPort map)
         {
             if (_baseLayer is ITileAsyncLayer)
             {

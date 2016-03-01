@@ -263,7 +263,7 @@ namespace GeoAPI.Geometries
         /// <param name="self">The linestring</param>
         /// <param name="map">The map that defines the affine coordinate transformation</param>
         /// <returns>The array of <see cref="PointF"/>s</returns>
-        public static PointF[] TransformToImage(this ILineString self, Map map)
+        public static PointF[] TransformToImage(this ILineString self, IMapViewPort map)
         {
             return TransformToImage(self.Coordinates, map);
         }
@@ -274,7 +274,7 @@ namespace GeoAPI.Geometries
         /// <param name="vertices">The array of coordinates</param>
         /// <param name="map">The map that defines the affine coordinate transformation</param>
         /// <returns>The array of <see cref="PointF"/>s</returns>
-        private static PointF[] TransformToImage(Coordinate[] vertices, Map map)
+        private static PointF[] TransformToImage(Coordinate[] vertices, IMapViewPort map)
         {
             var v = new PointF[vertices.Length];
             for (var i = 0; i < vertices.Length; i++)
@@ -331,7 +331,7 @@ namespace GeoAPI.Geometries
         /// <param name="self">The polygon</param>
         /// <param name="map">The map that defines the affine coordinate transformation.</param>
         /// <returns>An array of PointFs</returns>
-        public static PointF[] TransformToImage(this IPolygon self, Map map)
+        public static PointF[] TransformToImage(this IPolygon self, IMapViewPort map)
         {
             return TransformToImage(self.Coordinates, map);
         }

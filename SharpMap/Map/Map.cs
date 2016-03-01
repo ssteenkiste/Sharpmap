@@ -88,7 +88,7 @@ namespace SharpMap
             }
 
             // The following code did not seem to work in all cases.
-
+            /*
             if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
             {
                 _logger.Debug("In design mode");
@@ -125,7 +125,7 @@ namespace SharpMap
                 _logger.Debug("Exiting design mode handling");
                 Trace.WriteLine("Exiting design mode handling");
             }
-
+            */
         }
 
         static readonly ILog _logger = LogManager.GetLogger(typeof(Map));
@@ -140,6 +140,7 @@ namespace SharpMap
         private readonly List<IMapDecoration> _decorations = new List<IMapDecoration>();
 
         private Color _backgroundColor;
+        private Guid _id = Guid.NewGuid();
         private int _srid = -1;
         private double _zoom;
         private Point _center;
@@ -551,6 +552,9 @@ namespace SharpMap
         [Obsolete("Use LayerRenderedEx")]
         public event EventHandler LayerRendered;
 
+        /// <summary>
+        /// Event fired when datas has changed.
+        /// </summary>
         public event EventHandler<DataChangedEventArgs> DataChanged;
 
 
@@ -705,8 +709,7 @@ namespace SharpMap
             g.PageUnit = GraphicsUnit.Pixel;
 
             var zoom = Zoom;
-            var scale = double.NaN; //will be resolved if needed
-
+            
             IList<ILayer> layerList;
             if (_backgroundLayers != null && _backgroundLayers.Count > 0)
             {
@@ -714,16 +717,10 @@ namespace SharpMap
                 layerList = _backgroundLayers.ToList();
                 foreach (var layer in layerList)
                 {
-                    if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
-                    {
-                        scale = MapScale;
-                    }
-
                     OnLayerRendering(layer, LayerCollectionType.Background);
 
                     if (layer.IsLayerVisible(this))
                     {
-
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
 
@@ -738,11 +735,6 @@ namespace SharpMap
                 //int srid = (Layers.Count > 0 ? Layers[0].SRID : -1); //Get the SRID of the first layer
                 foreach (var layer in layerList)
                 {
-                    if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
-                    {
-                        scale = MapScale;
-                    }
-
                     OnLayerRendering(layer, LayerCollectionType.Static);
 
                     if (layer.IsLayerVisible(this))
@@ -759,11 +751,6 @@ namespace SharpMap
                 layerList = _variableLayers.ToList();
                 foreach (var layer in layerList)
                 {
-                    if (layer.VisibilityUnits == VisibilityUnits.Scale && double.IsNaN(scale))
-                    {
-                        scale = MapScale;
-                    }
-
                     if (layer.IsLayerVisible(this))
                     {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
@@ -936,10 +923,13 @@ namespace SharpMap
                     BackColor = BackColor,
                     MaximumZoom = MaximumZoom,
                     MinimumZoom = MinimumZoom,
+                    EnforceMaximumExtents = EnforceMaximumExtents,
+                    MaximumExtents = MaximumExtents,
                     PixelAspectRatio = PixelAspectRatio,
                     Zoom = Zoom,
                     DisposeLayersOnDispose = false,
-                    SRID = SRID
+                    SRID = SRID,
+                    _id = ID
                 };
 
                 if (MapTransform != null)
@@ -1087,7 +1077,7 @@ namespace SharpMap
         /// </summary>
         /// <param name="p">Point in world coordinates</param>
         /// <returns>Point in image coordinates</returns>
-        public PointF WorldToImage(Point p)
+        public PointF WorldToImage(Coordinate p)
         {
             return WorldToImage(p, false);
         }
@@ -1098,7 +1088,7 @@ namespace SharpMap
         /// </summary>
         /// <param name="p">Point in image coordinates</param>
         /// <returns>Point in world coordinates</returns>
-        public Point ImageToWorld(PointF p)
+        public Coordinate ImageToWorld(PointF p)
         {
             return ImageToWorld(p, false);
         }
@@ -1109,7 +1099,7 @@ namespace SharpMap
         /// <param name="p">Point in image coordinates</param>
         /// <param name="careAboutMapTransform">Indicates whether MapTransform should be taken into account</param>
         /// <returns>Point in world coordinates</returns>
-        public Point ImageToWorld(PointF p, bool careAboutMapTransform)
+        public Coordinate ImageToWorld(PointF p, bool careAboutMapTransform)
         {
             if (careAboutMapTransform)
             {
@@ -1131,6 +1121,15 @@ namespace SharpMap
         #endregion
 
         #region Properties
+
+        // <summary>
+        /// Gets or sets the unique identifier of the map.
+        /// </summary>
+        public Guid ID
+        {
+            get { return _id; }
+            set { _id = value; }
+        }
 
         /// <summary>
         /// Gets or sets the SRID of the map
@@ -1254,7 +1253,7 @@ namespace SharpMap
         /// <summary>
         /// Center of map in WCS
         /// </summary>
-        public Point Center
+        public Coordinate Center
         {
             get { return _center; }
             set
@@ -1303,10 +1302,16 @@ namespace SharpMap
 
         private void LoadDatas()
         {
-            foreach (var l in Layers.ToList().OfType<Layer>().Where(l => l.Enabled && l.MinVisible < Zoom && l.MaxVisible >= Zoom))
+            foreach(var bl in BackgroundLayer.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
+            {
+                bl.LoadDatas(this);
+            }
+            foreach (var l in Layers.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
             {
                 l.LoadDatas(this);
             }
+
+
         }
 
         protected bool IsFetching;

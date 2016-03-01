@@ -60,7 +60,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="map"></param>
         /// <returns></returns>
-        private Point GetLocation(Map map)
+        private Point GetLocation(IMapViewPort map)
         {
             var clipRect = map.Size;
             var objectSize = Size;
@@ -165,9 +165,9 @@ namespace SharpMap.Rendering.Decoration
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map</param>
         /// <returns>The size of the map decoration</returns>
-        protected abstract Size InternalSize(Graphics g, Map map);
+        protected abstract Size InternalSize(Graphics g, IMapViewPort map);
 
-        private void CalcMapDecorationMetrics(Graphics g, Map map)
+        private void CalcMapDecorationMetrics(Graphics g, IMapViewPort map)
         {
             _cachedSize = InternalSize(g, map);
             var rect = new Rectangle(Point.Add(GetLocation(map), BorderMargin), _cachedSize);
@@ -179,7 +179,7 @@ namespace SharpMap.Rendering.Decoration
             get { return Size.Add(_cachedSize, Size.Add(BorderMargin, BorderMargin)); }
         }
 
-        private Region GetClipRegion(Map map)
+        private Region GetClipRegion(IMapViewPort map)
         {
             return new Region(new Rectangle(Point.Add(GetLocation(map), BorderMargin), _cachedSize));
         }
@@ -221,7 +221,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        public void Render(Graphics g, Map map)
+        public void Render(Graphics g, IMapViewPort map)
         {
             //Is this map decoration enabled?
             if (!Enabled)
@@ -263,7 +263,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        protected virtual void OnRender(Graphics g, Map map)
+        protected virtual void OnRender(Graphics g, IMapViewPort map)
         {
         }
         /// <summary>
@@ -271,7 +271,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        protected virtual void OnRendering(Graphics g, Map map)
+        protected virtual void OnRendering(Graphics g, IMapViewPort map)
         {
             CalcMapDecorationMetrics(g, map);
         }
@@ -280,7 +280,7 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        protected virtual void OnRendered(Graphics g, Map map)
+        protected virtual void OnRendered(Graphics g, IMapViewPort map)
         {
         }
     }

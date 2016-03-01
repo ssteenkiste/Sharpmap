@@ -12,6 +12,6 @@ namespace SharpMap.Rendering.Decoration
         /// </summary>
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map</param>
-        void Render(Graphics g, Map map);
+        void Render(Graphics g, IMapViewPort map);
     }
 }

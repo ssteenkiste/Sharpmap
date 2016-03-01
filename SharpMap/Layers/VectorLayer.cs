@@ -53,6 +53,7 @@ namespace SharpMap.Layers
         private IProvider _dataSource;
         private SmoothingMode _smoothingMode;
         private ITheme _theme;
+        private Envelope _envelope;
 
         /// <summary>
         /// Initializes a new layer
@@ -126,7 +127,7 @@ namespace SharpMap.Layers
         public IProvider DataSource
         {
             get { return _dataSource; }
-            set { _dataSource = value; }
+            set { _dataSource = value; _envelope = null; }
         }
 
         /// <summary>
@@ -139,6 +140,16 @@ namespace SharpMap.Layers
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the layer envelope should be treated as static or not.
+        /// </summary>
+        /// <remarks>
+        /// When CacheExtent is enabled the layer Envelope will be calculated only once from DataSource, this 
+        /// helps to speed up the Envelope calculation with some DataProviders. Default is false for backward
+        /// compatibility.
+        /// </remarks>
+        public virtual bool CacheExtent { get; set; }
+
+        /// <summary>
         /// Returns the extent of the layer
         /// </summary>
         /// <returns>Bounding box corresponding to the extent of the features in the layer</returns>
@@ -148,18 +159,27 @@ namespace SharpMap.Layers
             {
                 if (DataSource == null)
                     throw (new ApplicationException("DataSource property not set on layer '" + LayerName + "'"));
+
+                if (_envelope != null && CacheExtent)
+                    return ToTarget(_envelope.Clone());
+
                 Envelope box;
                 lock (_dataSource)
                 {
-                    var wasOpen = DataSource.IsOpen;
+                    bool wasOpen = DataSource.IsOpen;
                     if (!wasOpen)
                         DataSource.Open();
                     box = DataSource.GetExtents();
                     if (!wasOpen) //Restore state
                         DataSource.Close();
+
+                    if (CacheExtent)
+                        _envelope = box;
                 }
 
                 return ToTarget(box);
+
+
             }
         }
 
@@ -199,7 +219,7 @@ namespace SharpMap.Layers
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
         /// 
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             if (map.Center == null)
                 throw (new ApplicationException("Cannot render map. View center not specified"));
@@ -230,7 +250,7 @@ namespace SharpMap.Layers
         /// <param name="map">The map object</param>
         /// <param name="envelope">The envelope to render</param>
         /// <param name="theme">The theme to apply</param>
-        protected virtual void RenderInternal(Graphics g, Map map, Envelope envelope, ITheme theme)
+        protected virtual void RenderInternal(Graphics g, IMapViewPort map, Envelope envelope, ITheme theme)
         {
             var useCache = _dataCache != null;
             FeatureDataSet ds;
@@ -318,7 +338,7 @@ namespace SharpMap.Layers
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map object</param>
         /// <param name="envelope">The envelope to render</param>
-        protected virtual void RenderInternal(Graphics g, Map map, Envelope envelope)
+        protected virtual void RenderInternal(Graphics g, IMapViewPort map, Envelope envelope)
         {
             //if style is not enabled, we don't need to render anything
             if (!Style.Enabled) return;
@@ -450,7 +470,7 @@ namespace SharpMap.Layers
         /// <param name="map"></param>
         /// <param name="style"></param>
         /// <param name="action"></param>
-        protected static void ApplyStyle(Graphics g, Map map, IStyle style, Action<Graphics, Map, VectorStyle> action)
+        protected static void ApplyStyle(Graphics g, IMapViewPort map, IStyle style, Action<Graphics, IMapViewPort, VectorStyle> action)
         {
             if (style == null) return;
             if (!style.Enabled) return;
@@ -483,7 +503,7 @@ namespace SharpMap.Layers
         /// <param name="map">The map</param>
         /// <param name="feature">The feature's geometry</param>
         /// <param name="style">The style to apply</param>
-        protected void RenderGeometry(Graphics g, Map map, IGeometry feature, VectorStyle style)
+        protected void RenderGeometry(Graphics g, IMapViewPort map, IGeometry feature, VectorStyle style)
         {
             if (feature == null)
                 return;
@@ -640,12 +660,32 @@ namespace SharpMap.Layers
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
-        public int FetchingPostponedInMilliseconds { get; set; }
-        protected Timer StartFetchTimer;
+        private int FetchingPostponedInMilliseconds { get; set; }
+        private Timer StartFetchTimer;
 
+        protected override void OnLayerDataLoaded()
+        {
+            if (DataChanged != null)
+            {
+                DataChanged(this, new DataChangedEventArgs(null, false, LayerName, this));
+            }
+            base.OnLayerDataLoaded();
+        }
+
+        /// <summary>
+        /// Abords fetching.
+        /// </summary>
         public void AbortFetch()
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reload datas for current enveloppe.
+        /// </summary>
+        public virtual void LoadDatas()
+        {
+
         }
 
         /// <summary>
@@ -654,20 +694,21 @@ namespace SharpMap.Layers
         /// <param name="view"></param>
         public override void LoadDatas(IMapViewPort view)
         {
-
             NewEnvelope = view.Envelope;
-            
+
             if (IsFetching)
             {
                 NeedsUpdate = true;
                 return;
             }
-            //if (NewEnvelope == null) return;
-            //LoadDatas(NewEnvelope);
+
             if (StartFetchTimer != null) StartFetchTimer.Dispose();
             StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
         }
 
+        /// <summary>
+        /// Event Raised when data are loaded.
+        /// </summary>
         public event DataChangedEventHandler DataChanged;
 
         /// <summary>
@@ -687,24 +728,31 @@ namespace SharpMap.Layers
         {
             if (NewEnvelope == null) return;
             LoadDatas(NewEnvelope);
-
             StartFetchTimer.Dispose();
         }
 
+        /// <summary>
+        /// Loads the datas.
+        /// </summary>
+        /// <param name="envelope"></param>
         protected void LoadDatas(Envelope envelope)
         {
+            if (IsDisposed) return;
             IsFetching = true;
             NeedsUpdate = false;
             var newenvelope = ToSource(envelope);
-
             var ds = new FeatureDataSet();
 
             var fetcher = new FeaturesFetcher(newenvelope, ds, _dataSource, DataArrived);
             Task.Factory.StartNew(() => fetcher.FetchOnThread(null));
-
         }
 
-        protected void DataArrived(FeatureDataSet ds, object state = null)
+        /// <summary>
+        /// Called when data are loaded.
+        /// </summary>
+        /// <param name="ds"></param>
+        /// <param name="state"></param>
+        protected void DataArrived(FeatureDataSet ds, object state = null, Exception error = null)
         {
             if (ds == null) throw new ArgumentException("argument features may not be null");
 
@@ -725,11 +773,6 @@ namespace SharpMap.Layers
 
                 var oldDatas = _dataCache;
                 _dataCache = ds;
-
-                if (DataChanged != null)
-                {
-                    DataChanged(this, new DataChangedEventArgs(null, false, LayerName, this));
-                }
 
                 OnLayerDataLoaded();
 

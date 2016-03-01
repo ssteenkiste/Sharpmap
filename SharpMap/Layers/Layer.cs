@@ -270,7 +270,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        public virtual void Render(Graphics g, Map map)
+        public virtual void Render(Graphics g, IMapViewPort map)
         {
             OnLayerRendered(g);
         }

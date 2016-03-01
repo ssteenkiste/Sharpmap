@@ -30,6 +30,8 @@ using SharpMap.Rendering.Thematics;
 using SharpMap.Styles;
 using Transform = SharpMap.Utilities.Transform;
 using SharpMap.Rendering.Symbolizer;
+using SharpMap.Fetching;
+using System.Threading;
 
 namespace SharpMap.Layers
 {
@@ -54,7 +56,7 @@ namespace SharpMap.Layers
     /// </code>
     /// </example>
     [Serializable]
-    public class LabelLayer : Layer
+    public class LabelLayer : Layer, IAsyncDataFetcher
     {
         #region Delegates
 
@@ -144,6 +146,8 @@ namespace SharpMap.Layers
         private TextRenderingHint _textRenderingHint;
 
         private ITheme _theme;
+
+        public event DataChangedEventHandler DataChanged;
 
         /// <summary>
         /// Creates a new instance of a LabelLayer
@@ -377,7 +381,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="g">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             if (DataSource == null)
                 throw (new ApplicationException("DataSource property not set on layer '" + LayerName + "'"));
@@ -420,7 +424,7 @@ namespace SharpMap.Layers
 
                 float rotationStyle = style != null ? style.Rotation : 0f;
                 float rotationColumn = 0f;
-                if (!String.IsNullOrEmpty(RotationColumn))
+                if (!string.IsNullOrEmpty(RotationColumn))
                     Single.TryParse(feature[RotationColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
                         out rotationColumn);
                 float rotation = rotationStyle + rotationColumn;
@@ -575,12 +579,12 @@ namespace SharpMap.Layers
         }
 
 
-        private BaseLabel CreateLabel(FeatureDataRow fdr, IGeometry feature, string text, float rotation, LabelStyle style, Map map, Graphics g)
+        private BaseLabel CreateLabel(FeatureDataRow fdr, IGeometry feature, string text, float rotation, LabelStyle style, IMapViewPort map, Graphics g)
         {
             return CreateLabel(fdr, feature, text, rotation, Priority, style, map, g, _getLocationMethod);
         }
 
-        private static BaseLabel CreateLabel(FeatureDataRow fdr, IGeometry feature, string text, float rotation, int priority, LabelStyle style, Map map, Graphics g, GetLocationMethod _getLocationMethod)
+        private static BaseLabel CreateLabel(FeatureDataRow fdr, IGeometry feature, string text, float rotation, int priority, LabelStyle style, IMapViewPort map, Graphics g, GetLocationMethod _getLocationMethod)
         {
             if (feature == null) return null;
 
@@ -723,7 +727,7 @@ namespace SharpMap.Layers
         /// <param name="map">The map</param>
         /// <!--<param name="useClipping">A value indicating whether clipping should be applied or not</param>-->
         /// <returns>A GraphicsPath</returns>
-        public static GraphicsPath LineStringToPath(ILineString lineString, Map map/*, bool useClipping*/)
+        public static GraphicsPath LineStringToPath(ILineString lineString, IMapViewPort map/*, bool useClipping*/)
         {
             var gp = new GraphicsPath(FillMode.Alternate);
             //if (!useClipping)
@@ -781,7 +785,7 @@ namespace SharpMap.Layers
         //    return path;
         //}
 
-        private static void CalculateLabelOnLinestring(ILineString line, ref BaseLabel baseLabel, Map map)
+        private static void CalculateLabelOnLinestring(ILineString line, ref BaseLabel baseLabel, IMapViewPort map)
         {
             double dx, dy;
             var label = baseLabel as Label;
@@ -816,7 +820,7 @@ namespace SharpMap.Layers
             label.Location = map.WorldToImage(new Coordinate(tmpx, tmpy));
         }
 
-        private static void CalculateLabelAroundOnLineString(ILineString line, ref BaseLabel label, Map map, System.Drawing.Graphics g, System.Drawing.SizeF textSize)
+        private static void CalculateLabelAroundOnLineString(ILineString line, ref BaseLabel label, IMapViewPort map, System.Drawing.Graphics g, System.Drawing.SizeF textSize)
         {
             var sPoints = line.Coordinates;
 
@@ -1003,5 +1007,38 @@ namespace SharpMap.Layers
             }
 
         }
+
+        #region IAsyncDataFetcher
+        protected FeatureDataSet _dataCache;
+        protected bool IsFetching;
+        protected bool NeedsUpdate = true;
+        private Envelope NewEnvelope;
+        private int FetchingPostponedInMilliseconds { get; set; }
+        private Timer StartFetchTimer;
+
+        /// <summary>
+        /// Raises the dada loaded event.
+        /// </summary>
+        protected override void OnLayerDataLoaded()
+        {
+            if (DataChanged != null)
+            {
+                DataChanged(this, new DataChangedEventArgs(null, false, LayerName, this));
+            }
+
+            base.OnLayerDataLoaded();
+        }
+
+        public void AbortFetch()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ClearCache()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }

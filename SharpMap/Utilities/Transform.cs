@@ -27,12 +27,12 @@ namespace SharpMap.Utilities
     {
         /// <summary>
         /// Transforms from world coordinate system (WCS) to image coordinates
-        /// NOTE: This method DOES NOT take the MapTransform property into account (use <see cref="Map.WorldToImage(GeoAPI.Geometries.Coordinate,bool)"/> instead)
+        /// NOTE: This method DOES NOT take the MapTransform property into account (use <see cref="Map.WorldToImage(Coordinate,bool)"/> instead)
         /// </summary>
         /// <param name="p">Point in WCS</param>
         /// <param name="map">Map reference</param>
         /// <returns>Point in image coordinates</returns>
-        public static PointF WorldtoMap(Coordinate p, Map map)
+        public static PointF WorldtoMap(Coordinate p, IMapViewPort map)
         {
              if (p.IsEmpty())
                 return PointF.Empty;
@@ -56,7 +56,7 @@ namespace SharpMap.Utilities
         /// <param name="p">Point in image coordinate system</param>
         /// <param name="map">Map reference</param>
         /// <returns>Point in WCS</returns>
-        public static Coordinate MapToWorld(PointF p, Map map)
+        public static Coordinate MapToWorld(PointF p, IMapViewPort map)
         {
             if (map.Center.IsEmpty() || double.IsNaN(map.MapHeight))
             {

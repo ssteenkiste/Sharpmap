@@ -111,7 +111,7 @@ namespace SharpMap.Rendering.Decoration.ScaleBar
         /// <param name="g">The graphics object</param>
         /// <param name="map">The map</param>
         /// <returns>The size of the map decoration</returns>
-        protected override Size InternalSize(Graphics g, Map map)
+        protected override Size InternalSize(Graphics g, IMapViewPort map)
         {
             CalcScale((int)g.DpiX);
             double width = MarginLeft + MarginRight + DefaultWidth;
@@ -124,7 +124,7 @@ namespace SharpMap.Rendering.Decoration.ScaleBar
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
-        protected override void OnRender(Graphics g, Map map)
+        protected override void OnRender(Graphics g, IMapViewPort map)
         {
             var rectF = g.ClipBounds;
             

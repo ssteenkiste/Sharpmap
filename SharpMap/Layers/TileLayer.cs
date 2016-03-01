@@ -12,6 +12,8 @@ using BruTile;
 using BruTile.Cache;
 using Common.Logging;
 using GeoAPI.Geometries;
+using SharpMap.Fetching;
+using System.ComponentModel;
 
 namespace SharpMap.Layers
 {
@@ -23,19 +25,13 @@ namespace SharpMap.Layers
     public class TileLayer : Layer, System.Runtime.Serialization.IDeserializationCallback
     {
         private static readonly ILog Logger = LogManager.GetCurrentClassLogger();
-
+       
         #region Fields
-
-        //string layerName;
-        /// <summary>
-        /// The <see cref="ImageAttributes"/> used when rendering the tiles
-        /// </summary>
-        //protected readonly ImageAttributes _imageAttributes = new ImageAttributes();
 
         /// <summary>
         /// The tile source for this layer
         /// </summary>
-        protected readonly ITileSource _source;
+        protected ITileSource _source;
 
         /// <summary>
         /// An in-memory tile cache
@@ -59,8 +55,11 @@ namespace SharpMap.Layers
         protected readonly bool _showErrorInTile = true;
 
         InterpolationMode _interpolationMode = InterpolationMode.HighQualityBicubic;
+
+        /// <summary>
+        /// The transparent color.
+        /// </summary>
         protected Color _transparentColor;
-        //System.Collections.Hashtable _cacheTiles = new System.Collections.Hashtable();
 
         #endregion
 
@@ -88,6 +87,7 @@ namespace SharpMap.Layers
             get { return _interpolationMode; }
             set { _interpolationMode = value; }
         }
+
 
         #endregion
 
@@ -130,7 +130,7 @@ namespace SharpMap.Layers
             LayerName = layerName;
             _transparentColor = transparentColor;
             _showErrorInTile = showErrorInTile;
-
+            
             if (!string.IsNullOrEmpty(fileCacheDir))
             {
                 _fileCache = new FileCache(fileCacheDir, "png");
@@ -149,6 +149,7 @@ namespace SharpMap.Layers
         /// <param name="imgFormat">Set the format of the tiles to be used</param>
         public TileLayer(ITileSource tileSource, string layerName, Color transparentColor, bool showErrorInTile, FileCache fileCache, ImageFormat imgFormat)
         {
+
             _source = tileSource;
             LayerName = layerName;
             _transparentColor = transparentColor;
@@ -168,7 +169,7 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="graphics">Graphics object reference</param>
         /// <param name="map">Map which is rendered</param>
-        public override void Render(Graphics graphics, Map map)
+        public override void Render(Graphics graphics, IMapViewPort map)
         {
             if (!map.Size.IsEmpty && map.Size.Width > 0 && map.Size.Height > 0)
             {
@@ -283,7 +284,9 @@ namespace SharpMap.Layers
 
         #endregion
 
-            #region Private methods
+        #region Private methods
+
+
 
         private void GetTileOnThread(object parameter)
         {
@@ -291,7 +294,6 @@ namespace SharpMap.Layers
             if (parameters.Length != 6) throw new ArgumentException("Six parameters expected");
             var tileProvider = (ITileProvider)parameters[0];
             var tileInfo = (TileInfo)parameters[1];
-            //MemoryCache<Bitmap> bitmaps = (MemoryCache<Bitmap>)parameters[2];
             var bitmaps = (ConcurrentDictionary<TileIndex, byte[]>)parameters[2];
             var autoResetEvent = (AutoResetEvent)parameters[3];
             var retry = (bool)parameters[4];
@@ -375,35 +377,43 @@ namespace SharpMap.Layers
         protected byte[] GetImageFromFileCache(TileInfo info)
         {
             return _fileCache.Find(info.Index);
-
-            //using (var ms = new MemoryStream(_fileCache.Find(info.Index)))
-            //{
-            //    return Image.FromStream(ms);
-            //}
         }
         #endregion
 
+
+
+        /// <summary>
+        /// Deserialisation.
+        /// </summary>
+        /// <param name="sender"></param>
         public void OnDeserialization(object sender)
         {
             if (_bitmaps == null)
+            {
                 _bitmaps = new MemoryCache<Stream>(200, 300);
+            }
         }
 
+        /// <summary>
+        /// Cleanup resources.
+        /// </summary>
         protected override void ReleaseManagedResources()
         {
             base.ReleaseManagedResources();
 
             _fileCache = null;
-
+            
             if (_bitmaps != null)
             {
                 _bitmaps.Dispose();
+                _bitmaps = null;
             }
 
             var source = _source as IDisposable;
             if (source != null)
             {
                 source.Dispose();
+                source = null;
             }
 
         }
