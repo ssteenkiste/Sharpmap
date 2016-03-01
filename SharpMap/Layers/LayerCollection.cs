@@ -15,6 +15,7 @@
 // along with SharpMap; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+using SharpMap.Fetching;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ namespace SharpMap.Layers
                 {
                     for (var i = 0; i < Count; i++)
                     {
-                        var comparison = String.Compare(this[i].LayerName,
+                        var comparison = string.Compare(this[i].LayerName,
                                                         layerName, StringComparison.CurrentCultureIgnoreCase);
 
                         if (comparison == 0)
@@ -182,8 +183,8 @@ namespace SharpMap.Layers
         {
             foreach (var layer in Items)
             {
-                var asyncLayer = layer as ITileAsyncLayer;
-                if (asyncLayer != null) asyncLayer.Cancel();
+                var asyncLayer = layer as IAsyncDataFetcher;
+                if (asyncLayer != null) asyncLayer.AbortFetch();
             }
             base.ClearItems();
 

@@ -1,5 +1,4 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
+﻿using System.Drawing.Imaging;
 using GeoAPI.Geometries;
 
 namespace SharpMap.Layers
@@ -44,7 +43,7 @@ namespace SharpMap.Layers
         /// <summary>
         /// Method to cancel the async layer
         /// </summary>
-        void Cancel();
+        //void Cancel();
 
         /// <summary>
         /// Returns the number of tiles that are in queue for download
