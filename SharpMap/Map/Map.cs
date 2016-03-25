@@ -20,7 +20,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -30,7 +29,6 @@ using GeoAPI.Geometries;
 using SharpMap.Layers;
 using SharpMap.Rendering;
 using SharpMap.Rendering.Decoration;
-using SharpMap.Styles;
 using SharpMap.Utilities;
 using Point = GeoAPI.Geometries.Coordinate;
 using System.Drawing.Imaging;
@@ -572,6 +570,8 @@ namespace SharpMap
 
         #region Methods
 
+        #region Map output
+
         /// <summary>
         /// Renders the map to an image
         /// </summary>
@@ -654,6 +654,8 @@ namespace SharpMap
             return metafile;
         }
 
+        #endregion
+
         //ToDo: fill in the blanks
         /// <summary>
         /// </summary>
@@ -675,7 +677,7 @@ namespace SharpMap
         /// Fires the RefreshNeeded event.
         /// </summary>
         /// <param name="e">EventArgs argument.</param>
-        protected virtual void OnRefreshNeeded(EventArgs e)
+        public virtual void OnRefreshNeeded(EventArgs e)
         {
             var handler = RefreshNeeded;
             if (handler != null)
@@ -702,18 +704,14 @@ namespace SharpMap
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0) && (_variableLayers == null || _variableLayers.Count == 0))
                 throw new InvalidOperationException("No layers to render");
-
-
+            
             g.Transform = MapTransform;
             g.Clear(BackColor);
             g.PageUnit = GraphicsUnit.Pixel;
 
-            var zoom = Zoom;
-            
             IList<ILayer> layerList;
             if (_backgroundLayers != null && _backgroundLayers.Count > 0)
             {
-
                 layerList = _backgroundLayers.ToList();
                 foreach (var layer in layerList)
                 {
@@ -763,6 +761,7 @@ namespace SharpMap
             {
                 mapDecoration.Render(g, this);
             }
+
             //Resets the timer for VariableLayer
             VariableLayerCollection.Pause = false;
 
@@ -907,7 +906,7 @@ namespace SharpMap
 
         #endregion
 
-        /// <summary>
+       /* /// <summary>
         /// Returns a cloned copy of this map-object.
         /// Layers are not cloned. The same instances are referenced from the cloned copy as from the original.
         /// The property <see cref="DisposeLayersOnDispose"/> is however false on this object (which prevents layers beeing disposed and then not usable from the original map)
@@ -954,7 +953,7 @@ namespace SharpMap
                 clone.VariableLayers.AddCollection(VariableLayers.Clone());
 
             return clone;
-        }
+        }*/
 
         #region Layer
         /// <summary>
@@ -1041,6 +1040,7 @@ namespace SharpMap
                     changed = true;
                 }
 
+                
                 if (changed)
                     OnMapViewChanged();
             }
@@ -1250,6 +1250,95 @@ namespace SharpMap
             }
         }
 
+        private const double PRECISION_TOLERANCE = 0.00000001;
+
+
+        /// <summary>
+        /// Changes the view center and zoom level.
+        /// </summary>
+        /// <param name="center">The center.</param>
+        /// <param name="zoom">The zoom level.</param>
+        public void ChangeView(Point center, double zoom)
+        {
+            var newZoom = zoom;
+            var newCenter = center;
+
+            newZoom = _mapViewportGuard.VerifyZoom(newZoom, newCenter);
+
+            var changed = false;
+            //if (Math.Abs(newZoom - _zoom) > PRECISION_TOLERANCE)
+            {
+                _zoom = newZoom;
+                changed = true;
+            }
+
+            //if (!newCenter.Equals2D(_center, PRECISION_TOLERANCE))
+            {
+                _center = newCenter;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                ViewChanged();
+                OnMapViewChanged();
+            }
+        }
+
+        #region Zoom
+
+        /// <summary>
+        /// Minimum zoom amount allowed
+        /// </summary>
+        public double MinimumZoom
+        {
+            get { return _mapViewportGuard.MinimumZoom; }
+            set
+            {
+                _mapViewportGuard.MinimumZoom = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum zoom amount allowed
+        /// </summary>
+        public double MaximumZoom
+        {
+            get { return _mapViewportGuard.MaximumZoom; }
+            set
+            {
+                _mapViewportGuard.MaximumZoom = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the zoom level of map.
+        /// </summary>
+        /// <remarks>
+        /// <para>The zoom level corresponds to the width of the map in WCS units.</para>
+        /// <para>A zoomlevel of 0 will result in an empty map being rendered, but will not throw an exception</para>
+        /// </remarks>
+        public double Zoom
+        {
+            get { return _zoom; }
+            set
+            {
+                var newCenter = new Coordinate(_center);
+                value = _mapViewportGuard.VerifyZoom(value, newCenter);
+
+                if (value.Equals(_zoom))
+                    return;
+
+                _zoom = value;
+                if (!newCenter.Equals2D(_center))
+                    _center = newCenter;
+
+                OnMapViewChanged();
+            }
+        }
+
+        #endregion
+
         /// <summary>
         /// Center of map in WCS
         /// </summary>
@@ -1285,13 +1374,20 @@ namespace SharpMap
         }
 
         /// <summary>
-        /// 
+        /// The view on this map has changed. Maybe the layers need to load new data, they need to be notified.
         /// </summary>
+        /// <param name="zoomFactor"></param>
+        /// <param name="center"></param>
+        /// <param name="view"></param>
+        /// <param name="extraView"></param>
         public void ViewChanged()
         {
             LoadDatas();
         }
 
+        /// <summary>
+        /// Raises the map view change event.
+        /// </summary>
         protected void OnMapViewChanged()
         {
             if (MapViewOnChange != null)
@@ -1300,9 +1396,10 @@ namespace SharpMap
             }
         }
 
+
         private void LoadDatas()
         {
-            foreach(var bl in BackgroundLayer.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
+            foreach (var bl in BackgroundLayer.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
             {
                 bl.LoadDatas(this);
             }
@@ -1310,10 +1407,8 @@ namespace SharpMap
             {
                 l.LoadDatas(this);
             }
-
-
         }
-
+       
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
@@ -1398,31 +1493,6 @@ namespace SharpMap
             return ScaleCalculations.CalculateScaleNonLatLong(Envelope.Width, Size.Width, 1, dpi);
         }
 
-        /// <summary>
-        /// Gets or sets the zoom level of map.
-        /// </summary>
-        /// <remarks>
-        /// <para>The zoom level corresponds to the width of the map in WCS units.</para>
-        /// <para>A zoomlevel of 0 will result in an empty map being rendered, but will not throw an exception</para>
-        /// </remarks>
-        public double Zoom
-        {
-            get { return _zoom; }
-            set
-            {
-                var newCenter = new Coordinate(_center);
-                value = _mapViewportGuard.VerifyZoom(value, newCenter);
-
-                if (value.Equals(_zoom))
-                    return;
-
-                _zoom = value;
-                if (!newCenter.Equals2D(_center))
-                    _center = newCenter;
-
-                OnMapViewChanged();
-            }
-        }
 
         /// <summary>
         /// Get Returns the size of a pixel in world coordinate units
@@ -1481,31 +1551,7 @@ namespace SharpMap
             get { return _mapViewportGuard.Size; }
             set { _mapViewportGuard.Size = value; }
         }
-
-        /// <summary>
-        /// Minimum zoom amount allowed
-        /// </summary>
-        public double MinimumZoom
-        {
-            get { return _mapViewportGuard.MinimumZoom; }
-            set
-            {
-                _mapViewportGuard.MinimumZoom = value;
-            }
-        }
-
-        /// <summary>
-        /// Maximum zoom amount allowed
-        /// </summary>
-        public double MaximumZoom
-        {
-            get { return _mapViewportGuard.MaximumZoom; }
-            set
-            {
-                _mapViewportGuard.MaximumZoom = value;
-            }
-        }
-
+        
         /// <summary>
         /// Gets the extents of the map based on the extents of all the layers in the layers collection
         /// </summary>

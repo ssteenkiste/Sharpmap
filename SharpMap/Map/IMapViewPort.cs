@@ -3,58 +3,60 @@ using System.Drawing;
 
 namespace SharpMap
 {
+
+    /// <summary>
+    /// The map view port interface
+    /// </summary>
     public interface IMapViewPort
     {
-        double MapScale
-        { get; set; }
 
-        Size Size
-        {
-            get;
-        }
+        /// <summary>
+        /// Gets or sets the map scale.
+        /// </summary>
+        double MapScale { get; set; }
+
+        /// <summary>
+        /// Gets the map size.
+        /// </summary>
+        Size Size { get; }
 
         /// <summary>
         /// Height of map in world units
         /// </summary>
         /// <returns></returns>
-        double MapHeight
-        {
-            get;
-        }
+        double MapHeight { get; }
 
-        double PixelWidth
-        { get; }
-        double PixelSize
-        { get; }
-        double PixelHeight
-        { get; }
-        double PixelAspectRatio
-        {
-            get;
-        }
+        double PixelWidth { get; }
+        double PixelSize { get; }
+        double PixelHeight { get; }
+        double PixelAspectRatio { get; }
 
-        double Zoom
-        { get; set; }
+        /// <summary>
+        /// Gets or sets the zoom.
+        /// </summary>
+        double Zoom { get; set; }
 
-        double MinimumZoom
-        {
-            get;
-            set;
-        }
+        /// <summary>
+        /// Gets the minimum zoom value.
+        /// </summary>
+        double MinimumZoom { get; set; }
 
-        double MaximumZoom
-        {
-            get;
-            set;
-        }
+        /// <summary>
+        /// Gets the maximum zoom value.
+        /// </summary>
+        double MaximumZoom { get; set; }
 
         /// <summary>
         /// Center of map in WCS
         /// </summary>
-        Coordinate Center
-        {
-            get;
-        }
+        Coordinate Center { get; }
+
+        /// <summary>
+        /// Changes the view.
+        /// </summary>
+        /// <param name="center"></param>
+        /// <param name="zoom"></param>
+        void ChangeView( Coordinate center, double zoom);
 
         /// <summary>
         /// Gets the extend;
@@ -65,22 +67,17 @@ namespace SharpMap
         /// <summary>
         /// Gets the extents of the current map based on the current zoom, center and mapsize
         /// </summary>
-        Envelope Envelope
-        {
-            get;
-        }
+        Envelope Envelope { get; }
 
-        Envelope MaximumExtents
-        { get; set; }
+        /// <summary>
+        /// Gets or sets the maximum extents.
+        /// </summary>
+        Envelope MaximumExtents { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating if <see cref="MaximumExtents"/> should be enforced or not.
         /// </summary>
-        bool EnforceMaximumExtents
-        {
-            get;
-            set;
-        }
+        bool EnforceMaximumExtents { get; set; }
 
         #region Transformations
 

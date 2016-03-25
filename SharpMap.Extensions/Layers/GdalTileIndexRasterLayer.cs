@@ -100,7 +100,7 @@ namespace SharpMap.Layers
             }
         }
 
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             try
             {

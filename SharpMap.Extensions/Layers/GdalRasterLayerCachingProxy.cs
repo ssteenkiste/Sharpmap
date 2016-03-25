@@ -486,7 +486,7 @@ namespace SharpMap.Layers
                 RequiresRedraw = true;
         }
 
-        public override void Render(Graphics g, Map map)
+        public override void Render(Graphics g, IMapViewPort map)
         {
             LastRenderedSize = map.Size;
             LastRenderedExtents = map.Envelope;

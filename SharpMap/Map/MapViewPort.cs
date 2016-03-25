@@ -149,6 +149,11 @@ namespace SharpMap
             }
         }
 
+        public void ChangeView(Coordinate center, double zoom)
+        {
+            throw new NotImplementedException();
+        }
+
         public Envelope GetExtents()
         {
             throw new NotImplementedException();
