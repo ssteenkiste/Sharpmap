@@ -108,13 +108,14 @@ namespace SharpMap.Layers
             {
                 return false;
             }
+            
+            //var envelope = layer.Envelope;
+            //if (envelope == null)
+            //    return false;
 
-            if (layer.Envelope == null)
-                return false;
-
-            // Does the layer intersect the viewport at all
-            if (!layer.Envelope.Intersects(view.Envelope))
-                return false;
+            //// Does the layer intersect the viewport at all
+            //if (!envelope.Intersects(view.Envelope))
+            //    return false;
 
             return true;
         }
