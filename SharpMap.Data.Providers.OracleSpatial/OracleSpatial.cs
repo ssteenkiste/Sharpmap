@@ -402,9 +402,12 @@ namespace SharpMap.Data.Providers
         {
             using (var conn = new OracleConnection(ConnectionString))
             {
-                string strSql = "SELECT SDO_AGGR_MBR(g." + GeometryColumn + ") FROM " + Table + " g ";
-                if (!String.IsNullOrEmpty(_definitionQuery))
-                    strSql += " WHERE " + DefinitionQuery;
+
+                string strSql = "SELECT SDO_TUNE.EXTENT_OF('" + Table + "','" + GeometryColumn + "') FROM DUAL";
+               
+                //string strSql = "SELECT SDO_AGGR_MBR(g." + GeometryColumn + ") FROM " + Table + " g ";
+                //if (!string.IsNullOrEmpty(_definitionQuery))
+                //    strSql += " WHERE " + DefinitionQuery;
                 using (var command = new OracleCommand(strSql, conn))
                 {
                     conn.Open();
