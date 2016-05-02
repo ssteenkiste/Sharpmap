@@ -8,12 +8,10 @@ using System.Threading;
 using BruTile;
 using BruTile.Cache;
 using System.IO;
-using System.Net;
 using GeoAPI.Geometries;
 using System.Threading.Tasks;
 using Common.Logging;
 using SharpMap.Fetching;
-using SharpMap.Utilities;
 using System.ComponentModel;
 
 namespace SharpMap.Layers
@@ -151,6 +149,13 @@ namespace SharpMap.Layers
             _tileFetcher.DataChanged += TileFetcherDataChanged;
             _tileFetcher.PropertyChanged += TileFetcherOnPropertyChanged;
 
+        }
+
+        protected override void ReleaseUnmanagedResources()
+        {
+            AbortFetch();
+            SetTileSource(null);
+            base.ReleaseUnmanagedResources();
         }
 
         private void TileFetcherOnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
