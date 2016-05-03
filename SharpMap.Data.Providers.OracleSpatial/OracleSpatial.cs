@@ -57,6 +57,7 @@ namespace SharpMap.Data.Providers
     public class OracleSpatial : BaseProvider
     {
         private string _definitionQuery;
+        private string _orderQuery;
         private string _geometryColumn;
         private string _objectIdColumn;
         private string _table;
@@ -152,6 +153,16 @@ namespace SharpMap.Data.Providers
             set { _definitionQuery = value; }
         }
 
+        /// <summary>
+        /// Order query used for priorising dataset
+        /// </summary>
+        public string PriorityColumn
+        {
+            get { return _orderQuery; }
+            set { _orderQuery = value; }
+        }
+
+
         #region IProvider Members
 
         /// <summary>
@@ -175,6 +186,11 @@ namespace SharpMap.Data.Providers
                     strSql += DefinitionQuery + " AND ";
 
                 strSql += strBbox;
+
+                if( !string.IsNullOrEmpty(PriorityColumn))
+                {
+                    strSql += " ORDER BY " + PriorityColumn;
+                }
 
                 using (var command = new OracleCommand(strSql, conn))
                 {
@@ -251,6 +267,11 @@ namespace SharpMap.Data.Providers
 
                 strSql += strBbox;
 
+                if (!string.IsNullOrEmpty(PriorityColumn))
+                {
+                    strSql += " ORDER BY " + PriorityColumn;
+                }
+
                 using (var command = new OracleCommand(strSql, conn))
                 {
                     conn.Open();
@@ -294,6 +315,11 @@ namespace SharpMap.Data.Providers
                     strSql += DefinitionQuery + " AND ";
 
                 strSql += strGeom;
+
+                if (!string.IsNullOrEmpty(PriorityColumn))
+                {
+                    strSql += " ORDER BY " + PriorityColumn;
+                }
 
                 using (var adapter = new OracleDataAdapter(strSql, conn))
                 {
@@ -441,6 +467,11 @@ namespace SharpMap.Data.Providers
                     strSql += DefinitionQuery + " AND ";
 
                 strSql += strBbox;
+
+                if (!string.IsNullOrEmpty(_orderQuery))
+                {
+                    strSql += " ORDER BY " + PriorityColumn;
+                }
 
                 using (var adapter = new OracleDataAdapter(strSql, conn))
                 {
