@@ -158,7 +158,7 @@ namespace SharpMap.Layers
         {
             foreach (var layer in lays)
             {
-                var comparison = String.Compare(layer.LayerName,
+                var comparison = string.Compare(layer.LayerName,
                                                 layerName, StringComparison.CurrentCultureIgnoreCase);
 
                 if (comparison == 0) return layer;

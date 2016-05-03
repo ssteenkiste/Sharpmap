@@ -445,6 +445,8 @@ namespace SharpMap
         /// </summary>
         public void Dispose()
         {
+            AbortFetch();
+
             if (DisposeLayersOnDispose)
             {
                 if (Layers != null)
