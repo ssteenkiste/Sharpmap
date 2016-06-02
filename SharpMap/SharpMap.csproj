@@ -245,6 +245,7 @@
     <Compile Include="Rendering\IMapRenderer.cs" />
     <Compile Include="Rendering\MapRenderingResult.cs" />
     <Compile Include="Rendering\Thematics\FontSizeTheme.cs" />
+    <Compile Include="Rendering\VisibleLayersIterator.cs" />
     <Compile Include="Styles\VisibilityUnits.cs" />
     <Compile Include="Layers\WmsLayer.cs" />
     <Compile Include="Map\MapViewportGuard.cs" />
@@ -331,6 +332,7 @@
     <Compile Include="Utilities\Wfs\XPathQueryManager.cs" />
     <Compile Include="Utilities\Wfs\XPathQueryManager_CompiledExpressionsDecorator.cs" />
     <Compile Include="Utilities\Wfs\XPathQueryManager_DecoratorBase.cs" />
+    <Compile Include="Utilities\ZoomHelper.cs" />
     <Compile Include="Web\IClient.cs" />
     <Compile Include="Web\OgcException.cs" />
     <Compile Include="Web\Wcs\Capabilities.cs" />

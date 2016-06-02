@@ -43,12 +43,7 @@ namespace SharpMap.Fetching
             _dataArrived = dataArrived;
             _timeOfRequest = timeOfRequest;
         }
-
-        public void AbordFetch()
-        {
-
-        }
-
+       
         /// <summary>
         /// Fetches the datas.
         /// </summary>
@@ -57,7 +52,7 @@ namespace SharpMap.Fetching
         {
             Exception error = null;
 
-            //lock (_provider)
+            lock (_provider)
             {
                 try
                 {

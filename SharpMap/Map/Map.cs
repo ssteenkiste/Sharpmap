@@ -1041,7 +1041,6 @@ namespace SharpMap
                     _center = center;
                     changed = true;
                 }
-
                 
                 if (changed)
                     OnMapViewChanged();
