@@ -178,8 +178,6 @@ namespace SharpMap.Layers
                 }
 
                 return ToTarget(box);
-
-
             }
         }
 
@@ -372,12 +370,9 @@ namespace SharpMap.Layers
                 {
                     ApplyStyle(g, map, Style, (graphics, map1, vStyle) =>
                     {
-
-
                         if (vStyle.LineSymbolizer != null)
                         {
-                            vStyle.LineSymbolizer.Begin(g, map,
-                                features.Count);
+                            vStyle.LineSymbolizer.Begin(g, map,features.Count);
                         }
                         else
                         {
@@ -656,14 +651,21 @@ namespace SharpMap.Layers
 
         #region Data loading
 
+        /// <summary>
+        /// The feature data cache.
+        /// </summary>
         protected FeatureDataSet _dataCache;
+
+
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
         private int FetchingPostponedInMilliseconds { get; set; }
         private Timer StartFetchTimer;
 
-
+        /// <summary>
+        /// Called when data has been loaded.
+        /// </summary>
         protected override void OnLayerDataLoaded()
         {
             if (DataChanged != null)
@@ -753,13 +755,13 @@ namespace SharpMap.Layers
         /// </summary>
         /// <param name="ds"></param>
         /// <param name="state"></param>
+        /// <param name="error"></param>
         protected void DataArrived(FeatureDataSet ds, object state = null, Exception error = null)
         {
             if (ds == null) throw new ArgumentException("argument features may not be null");
 
             try
             {
-
                 // Transform geometries if necessary
                 if (CoordinateTransformation != null)
                 {

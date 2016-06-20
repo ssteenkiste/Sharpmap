@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Common.Logging;
 using SharpMap.Fetching;
 using System.ComponentModel;
+using System.Globalization;
 
 namespace SharpMap.Layers
 {
@@ -227,7 +228,7 @@ namespace SharpMap.Layers
                 foreach (var tile in tiles)
                 {
                     var bmp = tile.Item2;
-                    if (bmp != null)
+                    if (bmp != null && bmp.CanRead && bmp.CanSeek)
                     {
                         //draws directly the bitmap
                         var box = new Envelope(new Coordinate(tile.Item1.Extent.MinX, tile.Item1.Extent.MinY),
@@ -238,7 +239,7 @@ namespace SharpMap.Layers
 
                         min = new PointF((float)Math.Round(min.X), (float)Math.Round(min.Y));
                         max = new PointF((float)Math.Round(max.X), (float)Math.Round(max.Y));
-                        
+
                         try
                         {
                             bmp.Position = 0;
@@ -252,7 +253,7 @@ namespace SharpMap.Layers
                                     GraphicsUnit.Pixel,
                                     imageAttributes);
 
-
+                              
                             }
                         }
                         catch (Exception ex)
@@ -295,7 +296,7 @@ namespace SharpMap.Layers
         /// <param name="view"></param>
         public override void LoadDatas(IMapViewPort view)
         {
-            AbortFetch();
+            //AbortFetch();
             var bbox = view.Envelope;
             var extent = new Extent(bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY);
             _tileFetcher.ViewChanged(extent, view.PixelSize);
