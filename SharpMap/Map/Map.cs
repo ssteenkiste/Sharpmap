@@ -144,7 +144,6 @@ namespace SharpMap
         private Point _center;
         private readonly LayerCollection _layers;
         private readonly LayerCollection _backgroundLayers;
-        private readonly VariableLayerCollection _variableLayers;
 
         private Matrix _mapTransform;
         private Matrix _mapTransformInverted;
@@ -186,8 +185,6 @@ namespace SharpMap
             _layersPerGroup.Add(_layers, new List<ILayer>());
             _backgroundLayers = new LayerCollection();
             _layersPerGroup.Add(_backgroundLayers, new List<ILayer>());
-            _variableLayers = new VariableLayerCollection(_layers);
-            _layersPerGroup.Add(_variableLayers, new List<ILayer>());
             BackColor = Color.Transparent;
             _mapTransform = new Matrix();
             _mapTransformInverted = new Matrix();
@@ -431,11 +428,6 @@ namespace SharpMap
                     asyncFetcher.AbortFetch();
                 }
             }
-            if (VariableLayers != null)
-            {
-                foreach (var asyncFetcher in VariableLayers.OfType<IAsyncDataFetcher>())
-                    asyncFetcher.AbortFetch();
-            }
         }
 
         #region IDisposable Members
@@ -463,11 +455,7 @@ namespace SharpMap
                         disposable.Dispose();
                     }
                 }
-                if (VariableLayers != null)
-                {
-                    foreach (var layer in VariableLayers.OfType<IDisposable>())
-                        layer.Dispose();
-                }
+                
             }
             if (Layers != null)
             {
@@ -477,11 +465,6 @@ namespace SharpMap
             {
                 BackgroundLayer.Clear();
             }
-            if (VariableLayers != null)
-            {
-                VariableLayers.Clear();
-            }
-
         }
 
         #endregion
@@ -701,10 +684,8 @@ namespace SharpMap
             if (g == null)
                 throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
 
-            //Pauses the timer for VariableLayer
-            VariableLayerCollection.Pause = true;
 
-            if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0) && (_variableLayers == null || _variableLayers.Count == 0))
+            if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0))
                 throw new InvalidOperationException("No layers to render");
             
             g.Transform = MapTransform;
@@ -722,6 +703,10 @@ namespace SharpMap
                     if (layer.IsLayerVisible(this))
                     {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
+                    }
+                    else
+                    {
+                        layer.CleanupRendering();
                     }
 
                     OnLayerRendered(layer, LayerCollectionType.Background);
@@ -741,31 +726,20 @@ namespace SharpMap
                     {
                         LayerCollectionRenderer.RenderLayer(layer, g, this);
                     }
+                    else
+                    {
+                        layer.CleanupRendering();
+                    }
 
                     OnLayerRendered(layer, LayerCollectionType.Static);
                 }
             }
-
-            if (_variableLayers != null && _variableLayers.Count > 0)
-            {
-                layerList = _variableLayers.ToList();
-                foreach (var layer in layerList)
-                {
-                    if (layer.IsLayerVisible(this))
-                    {
-                        LayerCollectionRenderer.RenderLayer(layer, g, this);
-                    }
-                }
-            }
-
+            
             // Render all map decorations
             foreach (var mapDecoration in _decorations)
             {
                 mapDecoration.Render(g, this);
             }
-
-            //Resets the timer for VariableLayer
-            VariableLayerCollection.Pause = false;
 
             OnMapRendered(g);
         }
@@ -851,16 +825,11 @@ namespace SharpMap
             if (g == null)
                 throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
 
-            VariableLayerCollection.Pause = true;
-
             LayerCollection lc = null;
             switch (layerCollectionType)
             {
                 case LayerCollectionType.Static:
                     lc = Layers;
-                    break;
-                case LayerCollectionType.Variable:
-                    lc = VariableLayers;
                     break;
                 case LayerCollectionType.Background:
                     lc = BackgroundLayer;
@@ -902,8 +871,6 @@ namespace SharpMap
                     }
                 }
             }
-
-            VariableLayerCollection.Pause = false;
         }
 
         #endregion
@@ -984,11 +951,7 @@ namespace SharpMap
             {
                 lay = BackgroundLayer.GetLayerByName(name);
             }
-            if (lay == null && VariableLayers != null)
-            {
-                lay = VariableLayers.GetLayerByName(name);
-            }
-
+            
             return lay;
         }
 
@@ -1231,14 +1194,6 @@ namespace SharpMap
         }
 
         /// <summary>
-        /// A collection of layers. The first layer in the list is drawn first, the last one on top.
-        /// </summary>
-        public VariableLayerCollection VariableLayers
-        {
-            get { return _variableLayers; }
-        }
-
-        /// <summary>
         /// Map background color (defaults to transparent)
         /// </summary>
         public Color BackColor
@@ -1400,13 +1355,27 @@ namespace SharpMap
 
         private void LoadDatas()
         {
-            foreach (var bl in BackgroundLayer.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
+            foreach (var bl in BackgroundLayer.ToList().OfType<Layer>())
             {
-                bl.LoadDatas(this);
+                if (bl.IsLayerVisible(this))
+                {
+                    bl.LoadDatas(this);
+                }
+                else
+                {
+                    bl.CleanupRendering();
+                }
             }
-            foreach (var l in Layers.ToList().OfType<Layer>().Where(l => l.IsLayerVisible(this)))
+            foreach (var l in Layers.ToList().OfType<Layer>())
             {
-                l.LoadDatas(this);
+                if (l.IsLayerVisible(this))
+                {
+                    l.LoadDatas(this);
+                }
+                else
+                {
+                    l.CleanupRendering();
+                }
             }
         }
        
@@ -1563,14 +1532,12 @@ namespace SharpMap
                 return MaximumExtents;
 
             if ((Layers == null || Layers.Count == 0) &&
-                (VariableLayers == null || VariableLayers.Count == 0) &&
                 (BackgroundLayer == null || BackgroundLayer.Count == 0))
                 throw (new InvalidOperationException("No layers to zoom to"));
 
             Envelope bbox = null;
 
             ExtendBoxForCollection(Layers, ref bbox);
-            ExtendBoxForCollection(VariableLayers, ref bbox);
             ExtendBoxForCollection(BackgroundLayer, ref bbox);
 
             return bbox;

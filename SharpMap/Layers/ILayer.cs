@@ -78,6 +78,11 @@ namespace SharpMap.Layers
         /// <param name="map">Map which is rendered</param>
         void Render(Graphics g, IMapViewPort map);
 
+        /// <summary>
+        /// Cleanup rendering elements.
+        /// </summary>
+        void CleanupRendering();
+
         ///// <summary>
         ///// Loads the layer datas.
         ///// </summary>

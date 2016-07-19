@@ -241,6 +241,12 @@ namespace SharpMap.Layers
             base.Render(g, map);
         }
 
+        public override void CleanupRendering()
+        {
+            //ClearCache();
+            base.CleanupRendering();
+        }
+
         /// <summary>
         /// Method to render this layer to the map, applying <paramref name="theme"/>.
         /// </summary>
@@ -271,14 +277,7 @@ namespace SharpMap.Layers
             {
                 foreach (var features in ds.Tables)
                 {
-                    // Transform geometries if necessary
-                    //if (CoordinateTransformation != null && !useCache)
-                    //{
-                    //    for (var i = 0; i < features.Count; i++)
-                    //    {
-                    //        features[i].Geometry = ToTarget(features[i].Geometry);
-                    //    }
-                    //}
+  
 
                     //Linestring outlines is drawn by drawing the layer once with a thicker line
                     //before drawing the "inline" on top.
@@ -655,7 +654,6 @@ namespace SharpMap.Layers
         /// The feature data cache.
         /// </summary>
         protected FeatureDataSet _dataCache;
-
 
         protected bool IsFetching;
         protected bool NeedsUpdate = true;

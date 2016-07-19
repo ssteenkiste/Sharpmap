@@ -265,6 +265,11 @@ namespace SharpMap.Layers
             }
         }
 
+
+        public virtual void CleanupRendering()
+        {
+        }
+
         /// <summary>
         /// Renders the layer
         /// </summary>

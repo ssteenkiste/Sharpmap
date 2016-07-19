@@ -221,6 +221,11 @@ namespace SharpMap.Layers
             }
         }
 
+        public void CleanupRendering()
+        {
+
+        }
+
         bool ICanQueryLayer.IsQueryEnabled
         {
             get

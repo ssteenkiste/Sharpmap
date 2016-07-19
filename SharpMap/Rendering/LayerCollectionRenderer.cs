@@ -7,7 +7,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SharpMap.Layers;
-using SharpMap.Styles;
 using Common.Logging;
 
 namespace SharpMap.Rendering
