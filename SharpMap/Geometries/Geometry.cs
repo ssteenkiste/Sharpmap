@@ -35,30 +35,8 @@ namespace SharpMap.Geometries
     /// <para>All instantiable geometry classes described in this specification are defined so that valid instances of a
     /// geometry class are topologically closed (i.e. all defined geometries include their boundary).</para>
     /// </remarks>
-    [Serializable]
     public abstract class Geometry : IGeometry, IEquatable<Geometry>
     {
-#if !DotSpatialProjections
-        private ICoordinateSystem _SpatialReference;
-#else
-        private ProjectionInfo _SpatialReference;
-#endif
-        #region IGeometry Members
-
-        /// <summary>
-        /// Gets or sets the spatial reference system associated with the <see cref="Geometry"/>.
-        /// A <see cref="Geometry"/> may not have had a spatial reference system defined for
-        /// it, in which case *spatialRef will be NULL.
-        /// </summary>
-#if !DotSpatialProjections
-        public ICoordinateSystem SpatialReference
-#else
-        public ProjectionInfo SpatialReference
-#endif
-        {
-            get { return _SpatialReference; }
-            set { _SpatialReference = value; }
-        }
 
         // The following are methods that should be implemented on a geometry object according to
         // the OpenGIS Simple Features Specification
@@ -71,9 +49,7 @@ namespace SharpMap.Geometries
             return SpatialRelations.Equals(this, other);
         }
 
-        #endregion
 
-        #region "Basic Methods on Geometry"
 
         /// <summary>
         ///  The inherent dimension of this <see cref="Geometry"/> object, which must be less than or equal
@@ -81,12 +57,6 @@ namespace SharpMap.Geometries
         /// </summary>
         /// <remarks>This specification is restricted to geometries in two-dimensional coordinate space.</remarks>
         public abstract int Dimension { get; }
-
-        /// <summary>
-        /// User Data Associated with the geometry object
-        /// </summary>
-        public object UserData { get; set; }
-
 
         /// <summary>
         /// The minimum bounding box for this <see cref="Geometry"/>, returned as a <see cref="Geometry"/>. The
@@ -98,7 +68,7 @@ namespace SharpMap.Geometries
         public Geometry Envelope()
         {
             BoundingBox box = GetBoundingBox();
-            Polygon envelope = new Polygon();
+            var envelope = new Polygon();
             envelope.ExteriorRing.Vertices.Add(box.Min); //minx miny
             envelope.ExteriorRing.Vertices.Add(new Point(box.Max.X, box.Min.Y)); //maxx minu
             envelope.ExteriorRing.Vertices.Add(box.Max); //maxx maxy
@@ -146,13 +116,6 @@ namespace SharpMap.Geometries
         public abstract bool IsEmpty();
 
         /// <summary>
-        ///  Returns 'true' if this Geometry has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        public abstract bool IsSimple();
-
-        /// <summary>
         /// Returns the closure of the combinatorial boundary of this <see cref="Geometry"/>. The
         /// combinatorial boundary is defined as described in section 3.12.3.2 of [1]. Because the result of this function
         /// is a closure, and hence topologically closed, the resulting boundary can be represented using
@@ -180,17 +143,7 @@ namespace SharpMap.Geometries
             return GeometryFromWKB.Parse(WKB);
         }
 
-        /// <summary>
-        /// Gets the geometry type of this class
-        /// </summary>
-        public virtual GeometryType2 GeometryType
-        {
-            get { return GeometryType2.Geometry; }
-        }
 
-        #endregion
-
-        #region "Methods for testing Spatial Relations between geometric objects"
 
         /// <summary>
         /// Returns 'true' if this Geometry is ‘spatially disjoint’ from another <see cref="Geometry"/>.
@@ -262,9 +215,7 @@ namespace SharpMap.Geometries
             throw new NotImplementedException();
         }
 
-        #endregion
 
-        #region "Methods that support Spatial Analysis"
 
         /// <summary>
         /// Returns the shortest distance between any two points in the two geometries
@@ -273,41 +224,11 @@ namespace SharpMap.Geometries
         public abstract double Distance(Geometry geom);
 
         /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        public abstract Geometry Buffer(double d);
-
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        public abstract Geometry ConvexHull();
-
-        /// <summary>
         /// Returns a geometry that represents the point set intersection of this Geometry
         /// with anotherGeometry.
         /// </summary>
         public abstract Geometry Intersection(Geometry geom);
 
-        /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        public abstract Geometry Union(Geometry geom);
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        public abstract Geometry Difference(Geometry geom);
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        public abstract Geometry SymDifference(Geometry geom);
-
-        #endregion
 
         /// <summary>
         /// This method must be overridden using 'public new [derived_data_type] Clone()'
@@ -315,7 +236,7 @@ namespace SharpMap.Geometries
         /// <returns>Copy of Geometry</returns>
         public Geometry Clone()
         {
-            throw (new ApplicationException("Clone() has not been implemented on derived datatype"));
+            throw (new Exception("Clone() has not been implemented on derived datatype"));
         }
 
         /// <summary>

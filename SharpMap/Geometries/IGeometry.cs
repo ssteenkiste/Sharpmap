@@ -26,20 +26,8 @@ namespace SharpMap.Geometries
     /// <summary>
     /// Defines basic interface for a Geometry
     /// </summary>
-    public interface IGeometry : IGeometryClassifier
+    public interface IGeometry
     {
-        #region "Basic Methods on Geometry"
-
-        /// <summary>
-        /// Gets or sets the spatial reference system associated with the <see cref="Geometry"/>.
-        /// A <see cref="Geometry"/> may not have had a spatial reference system defined for
-        /// it, in which case *spatialRef will be NULL.
-        /// </summary>
-#if !DotSpatialProjections
-        ICoordinateSystem SpatialReference { get; set; }
-#else
-        ProjectionInfo SpatialReference { get; set; }
-#endif
         /// <summary>
         ///  The inherent dimension of this <see cref="Geometry"/> object, which must be less than or equal to the coordinate dimension.
         /// </summary>
@@ -81,14 +69,6 @@ namespace SharpMap.Geometries
         bool IsEmpty();
 
         /// <summary>
-        ///  Returns 'true' if this <see cref="Geometry"/> has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        /// <returns>true if the <see cref="Geometry"/> is simple</returns>
-        bool IsSimple();
-
-        /// <summary>
         /// Returns the closure of the combinatorial boundary of this <see cref="Geometry"/>. The
         /// combinatorial boundary is defined as described in section 3.12.3.2 of [1]. Because the result of this function
         /// is a closure, and hence topologically closed, the resulting boundary can be represented using
@@ -106,10 +86,6 @@ namespace SharpMap.Geometries
         /// <param name="intersectionPattern">Intersection Pattern</param>
         /// <returns>True if spatially related</returns>
         bool Relate(Geometry other, string intersectionPattern);
-
-        #endregion
-
-        #region "Methods for testing Spatial Relations between geometric objects"
 
         /// <summary>
         /// Returns 'true' if this <see cref="Geometry"/> is 'spatially equal' to another <see cref="Geometry"/>
@@ -151,10 +127,6 @@ namespace SharpMap.Geometries
         /// </summary>
         bool Overlaps(Geometry geom);
 
-        #endregion
-
-        #region "Methods that support Spatial Analysis"
-
         /// <summary>
         /// Returns the shortest distance between any two points in the two geometries
         /// as calculated in the spatial reference system of this <see cref="Geometry"/>.
@@ -164,50 +136,11 @@ namespace SharpMap.Geometries
         double Distance(Geometry geom);
 
         /// <summary>
-        /// Returns a <see cref="Geometry"/> that represents all points whose distance from this <see cref="Geometry"/>
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this <see cref="Geometry"/>.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        /// <returns>Buffer around <see cref="Geometry"/></returns>
-        Geometry Buffer(double d);
-
-
-        /// <summary>
-        /// Returns a <see cref="Geometry"/> that represents the convex hull of this <see cref="Geometry"/>.
-        /// </summary>
-        /// <returns>The convex hull</returns>
-        Geometry ConvexHull();
-
-        /// <summary>
         /// Returns a <see cref="Geometry"/> that represents the point set intersection of this <see cref="Geometry"/>
         /// with another <see cref="Geometry"/>.
         /// </summary>
         /// <param name="geom"><see cref="Geometry"/> to intersect with</param>
         /// <returns>Returns a <see cref="Geometry"/> that represents the point set intersection of this <see cref="Geometry"/> with another <see cref="Geometry"/>.</returns>
         Geometry Intersection(Geometry geom);
-
-        /// <summary>
-        /// Returns a <see cref="Geometry"/> that represents the point set union of this <see cref="Geometry"/> with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to union with</param>
-        /// <returns>Unioned <see cref="Geometry"/></returns>
-        Geometry Union(Geometry geom);
-
-        /// <summary>
-        /// Returns a <see cref="Geometry"/> that represents the point set difference of this <see cref="Geometry"/> with anotherGeometry.
-        /// </summary>
-        /// <param name="geom"><see cref="Geometry"/> to compare to</param>
-        /// <returns><see cref="Geometry"/></returns>
-        Geometry Difference(Geometry geom);
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this <see cref="Geometry"/> with anotherGeometry.
-        /// </summary>
-        /// <param name="geom"><see cref="Geometry"/> to compare to</param>
-        /// <returns><see cref="Geometry"/></returns>
-        Geometry SymDifference(Geometry geom);
-
-        #endregion
     }
 }

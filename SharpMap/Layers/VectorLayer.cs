@@ -243,7 +243,6 @@ namespace SharpMap.Layers
 
         public override void CleanupRendering()
         {
-            //ClearCache();
             base.CleanupRendering();
         }
 

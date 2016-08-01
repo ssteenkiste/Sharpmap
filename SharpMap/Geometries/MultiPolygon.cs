@@ -18,23 +18,23 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace SharpMap.Geometries
 {
     /// <summary>
     /// A MultiPolygon is a MultiSurface whose elements are Polygons.
     /// </summary>
-    [Serializable]
     public class MultiPolygon : MultiSurface
     {
-        private IList<Polygon> _Polygons;
+        private IList<Polygon> polygons;
 
         /// <summary>
         /// Instantiates a MultiPolygon
         /// </summary>
         public MultiPolygon()
         {
-            _Polygons = new Collection<Polygon>();
+            polygons = new Collection<Polygon>();
         }
 
         /// <summary>
@@ -42,8 +42,8 @@ namespace SharpMap.Geometries
         /// </summary>
         public IList<Polygon> Polygons
         {
-            get { return _Polygons; }
-            set { _Polygons = value; }
+            get { return polygons; }
+            set { polygons = value; }
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace SharpMap.Geometries
         /// <returns>Geometry at index</returns>
         public new Polygon this[int index]
         {
-            get { return _Polygons[index]; }
+            get { return polygons[index]; }
         }
 
         /// <summary>
@@ -63,10 +63,7 @@ namespace SharpMap.Geometries
         {
             get
             {
-                double result = 0;
-                for (int i = 0; i < _Polygons.Count; i++)
-                    result += _Polygons[i].Area;
-                return result;
+                return polygons.Sum(polygon => polygon.Area);
             }
         }
 
@@ -92,7 +89,7 @@ namespace SharpMap.Geometries
         /// </summary>
         public override int NumGeometries
         {
-            get { return _Polygons.Count; }
+            get { return polygons.Count; }
         }
 
         /// <summary>
@@ -101,23 +98,8 @@ namespace SharpMap.Geometries
         /// <returns>Returns 'true' if this Geometry is the empty geometry</returns>
         public override bool IsEmpty()
         {
-            if (_Polygons == null || _Polygons.Count == 0)
-                return true;
-            for (int i = 0; i < _Polygons.Count; i++)
-                if (!_Polygons[i].IsEmpty())
-                    return false;
-            return true;
-        }
-
-        /// <summary>
-        ///  Returns 'true' if this Geometry has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        /// <returns>true if the geometry is simple</returns>
-        public override bool IsSimple()
-        {
-            throw new NotImplementedException();
+            if (polygons == null || polygons.Count == 0) return true;
+            return polygons.All(polygon => polygon.IsEmpty());
         }
 
         /// <summary>
@@ -144,27 +126,6 @@ namespace SharpMap.Geometries
         }
 
         /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        /// <returns>Buffer around geometry</returns>
-        public override Geometry Buffer(double d)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        /// <returns>The convex hull</returns>
-        public override Geometry ConvexHull()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns a geometry that represents the point set intersection of this Geometry
         /// with anotherGeometry.
         /// </summary>
@@ -176,43 +137,13 @@ namespace SharpMap.Geometries
         }
 
         /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to union with</param>
-        /// <returns>Unioned geometry</returns>
-        public override Geometry Union(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry Difference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry SymDifference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns an indexed geometry in the collection
         /// </summary>
-        /// <param name="N">Geometry index</param>
+        /// <param name="n">Geometry index</param>
         /// <returns>Geometry at index N</returns>
-        public override Geometry Geometry(int N)
+        public override Geometry Geometry(int n)
         {
-            return _Polygons[N];
+            return polygons[n];
         }
 
         /// <summary>
@@ -221,7 +152,7 @@ namespace SharpMap.Geometries
         /// <returns>bounding box</returns>
         public override BoundingBox GetBoundingBox()
         {
-            if (_Polygons == null || _Polygons.Count == 0)
+            if (polygons == null || polygons.Count == 0)
                 return null;
             BoundingBox bbox = Polygons[0].GetBoundingBox();
             for (int i = 1; i < Polygons.Count; i++)
@@ -235,9 +166,9 @@ namespace SharpMap.Geometries
         /// <returns>Copy of Geometry</returns>
         public new MultiPolygon Clone()
         {
-            MultiPolygon geoms = new MultiPolygon();
-            for (int i = 0; i < _Polygons.Count; i++)
-                geoms.Polygons.Add(_Polygons[i].Clone());
+            var geoms = new MultiPolygon();
+            foreach (Polygon polygon in polygons)
+                geoms.Polygons.Add(polygon.Clone());
             return geoms;
         }
 
@@ -247,17 +178,8 @@ namespace SharpMap.Geometries
         /// <returns></returns>
         public override IEnumerator<Geometry> GetEnumerator()
         {
-            foreach (Polygon p in _Polygons)
+            foreach (Polygon p in polygons)
                 yield return p;
         }
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.MultiPolygon;
-            }
-        }
-
     }
 }

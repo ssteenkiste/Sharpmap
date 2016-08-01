@@ -34,14 +34,14 @@ namespace SharpMap.Geometries
     /// </remarks>
     public class GeometryCollection : Geometry, IGeometryCollection, IEnumerable<Geometry>
     {
-        private IList<Geometry> _Geometries;
+        private IList<Geometry> geometries;
 
         /// <summary>
         /// Initializes a new GeometryCollection
         /// </summary>
         public GeometryCollection()
         {
-            _Geometries = new Collection<Geometry>();
+            geometries = new Collection<Geometry>();
         }
 
         /// <summary>
@@ -49,21 +49,20 @@ namespace SharpMap.Geometries
         /// </summary>
         /// <param name="index">Geometry index</param>
         /// <returns>Geometry</returns>
-        public virtual Geometry this[int index]
+        public Geometry this[int index]
         {
-            get { return _Geometries[index]; }
+            get { return geometries[index]; }
         }
 
         /// <summary>
         /// Gets or sets the GeometryCollection
         /// </summary>
-        public virtual IList<Geometry> Collection
+        public IList<Geometry> Collection
         {
-            get { return _Geometries; }
-            set { _Geometries = value; }
+            get { return geometries; }
+            set { geometries = value; }
         }
 
-        #region IEnumerable<Geometry> Members
 
         /// <summary>
         /// Gets an enumerator for enumerating the geometries in the GeometryCollection
@@ -84,26 +83,24 @@ namespace SharpMap.Geometries
                 yield return g;
         }
 
-        #endregion
 
-        #region IGeometryCollection Members
 
         /// <summary>
         /// Gets the number of geometries in the collection.
         /// </summary>
         public virtual int NumGeometries
         {
-            get { return _Geometries.Count; }
+            get { return geometries.Count; }
         }
 
         /// <summary>
         /// Returns an indexed geometry in the collection
         /// </summary>
-        /// <param name="N">Geometry index</param>
+        /// <param name="n">Geometry index</param>
         /// <returns>Geometry at index N</returns>
-        public virtual Geometry Geometry(int N)
+        public virtual Geometry Geometry(int n)
         {
-            return _Geometries[N];
+            return geometries[n];
         }
 
         /// <summary>
@@ -112,10 +109,10 @@ namespace SharpMap.Geometries
         /// <returns>true of collection is empty</returns>
         public override bool IsEmpty()
         {
-            if (_Geometries == null)
+            if (geometries == null)
                 return true;
-            for (int i = 0; i < _Geometries.Count; i++)
-                if (!_Geometries[i].IsEmpty())
+            foreach (Geometry geometry in geometries)
+                if (!geometry.IsEmpty())
                     return false;
             return true;
         }
@@ -130,8 +127,8 @@ namespace SharpMap.Geometries
             get
             {
                 int dim = 0;
-                for (int i = 0; i < Collection.Count; i++)
-                    dim = (dim < Collection[i].Dimension ? Collection[i].Dimension : dim);
+                foreach (Geometry geometry in Collection)
+                    dim = (dim < geometry.Dimension ? geometry.Dimension : dim);
                 return dim;
             }
         }
@@ -145,21 +142,11 @@ namespace SharpMap.Geometries
             if (Collection.Count == 0)
                 return null;
             BoundingBox b = this[0].GetBoundingBox();
-            for (int i = 0; i < Collection.Count; i++)
-                b = b.Join(Collection[i].GetBoundingBox());
+            foreach (Geometry geometry in Collection)
+                b = b.Join(geometry.GetBoundingBox());
             return b;
         }
 
-        /// <summary>
-        ///  Returns 'true' if this Geometry has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        /// <returns>true if the geometry is simple</returns>
-        public override bool IsSimple()
-        {
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Returns the closure of the combinatorial boundary of this Geometry. The
@@ -185,27 +172,6 @@ namespace SharpMap.Geometries
         }
 
         /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        /// <returns>Buffer around geometry</returns>
-        public override Geometry Buffer(double d)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        /// <returns>The convex hull</returns>
-        public override Geometry ConvexHull()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns a geometry that represents the point set intersection of this Geometry
         /// with anotherGeometry.
         /// </summary>
@@ -216,37 +182,6 @@ namespace SharpMap.Geometries
             throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to union with</param>
-        /// <returns>Unioned geometry</returns>
-        public override Geometry Union(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry Difference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry SymDifference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
 
         /// <summary>
         /// Determines whether this GeometryCollection is spatially equal to the GeometryCollection 'g'
@@ -260,7 +195,7 @@ namespace SharpMap.Geometries
             if (g.Collection.Count != Collection.Count)
                 return false;
             for (int i = 0; i < g.Collection.Count; i++)
-                if (!g.Collection[i].Equals((Geometry) Collection[i]))
+                if (!g.Collection[i].Equals(Collection[i]))
                     return false;
             return true;
         }
@@ -273,8 +208,8 @@ namespace SharpMap.Geometries
         public override int GetHashCode()
         {
             int hash = 0;
-            for (int i = 0; i < _Geometries.Count; i++)
-                hash = hash ^ _Geometries[i].GetHashCode();
+            foreach (var geometry in geometries)
+                hash = hash ^ geometry.GetHashCode();
             return hash;
         }
 
@@ -284,18 +219,10 @@ namespace SharpMap.Geometries
         /// <returns>Copy of Geometry</returns>
         public new GeometryCollection Clone()
         {
-            GeometryCollection geoms = new GeometryCollection();
-            for (int i = 0; i < _Geometries.Count; i++)
-                geoms.Collection.Add((Geometry) _Geometries[i].Clone());
+            var geoms = new GeometryCollection();
+            foreach (Geometry geometry in geometries)
+                geoms.Collection.Add(geometry.Clone());
             return geoms;
-        }
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.GeometryCollection;
-            }
         }
     }
 }

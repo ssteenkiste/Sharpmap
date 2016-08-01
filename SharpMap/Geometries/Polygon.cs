@@ -30,11 +30,10 @@ namespace SharpMap.Geometries
     /// <remarks>
     /// Vertices of rings defining holes in polygons are in the opposite direction of the exterior ring.
     /// </remarks>
-    [Serializable]
     public class Polygon : Surface
     {
-        private LinearRing _ExteriorRing;
-        private IList<LinearRing> _InteriorRings;
+        private LinearRing exteriorRing;
+        private IList<LinearRing> interiorRings;
 
         /// <summary>
         /// Instatiates a polygon based on one extorier ring and a collection of interior rings.
@@ -43,8 +42,8 @@ namespace SharpMap.Geometries
         /// <param name="interiorRings">Interior rings</param>
         public Polygon(LinearRing exteriorRing, IList<LinearRing> interiorRings)
         {
-            _ExteriorRing = exteriorRing;
-            _InteriorRings = interiorRings ?? new Collection<LinearRing>();
+            this.exteriorRing = exteriorRing;
+            this.interiorRings = interiorRings;
         }
 
         /// <summary>
@@ -68,8 +67,8 @@ namespace SharpMap.Geometries
         /// <remarks>This method is supplied as part of the OpenGIS Simple Features Specification</remarks>
         public LinearRing ExteriorRing
         {
-            get { return _ExteriorRing; }
-            set { _ExteriorRing = value; }
+            get { return exteriorRing; }
+            set { exteriorRing = value; }
         }
 
         /// <summary>
@@ -77,8 +76,8 @@ namespace SharpMap.Geometries
         /// </summary>
         public IList<LinearRing> InteriorRings
         {
-            get { return _InteriorRings; }
-            set { _InteriorRings = value; }
+            get { return interiorRings; }
+            set { interiorRings = value; }
         }
 
         /// <summary>
@@ -88,7 +87,7 @@ namespace SharpMap.Geometries
         /// <returns></returns>
         public int NumInteriorRing
         {
-            get { return _InteriorRings.Count; }
+            get { return interiorRings.Count; }
         }
 
         /// <summary>
@@ -99,14 +98,13 @@ namespace SharpMap.Geometries
             get
             {
                 double area = 0.0;
-                area += _ExteriorRing.Area;
-                bool extIsClockwise = _ExteriorRing.IsCCW();
-                for (int i = 0; i < _InteriorRings.Count; i++)
-                    //opposite direction of exterior subtracts area
-                    if (_InteriorRings[i].IsCCW() != extIsClockwise)
-                        area -= _InteriorRings[i].Area;
+                area += exteriorRing.Area;
+                bool extIsClockwise = exteriorRing.IsCCW();
+                foreach (LinearRing linearRing in interiorRings)
+                    if (linearRing.IsCCW() != extIsClockwise)
+                        area -= linearRing.Area;
                     else
-                        area += _InteriorRings[i].Area;
+                        area += linearRing.Area;
                 return area;
             }
         }
@@ -132,35 +130,11 @@ namespace SharpMap.Geometries
         /// Returns the Nth interior ring for this Polygon as a LineString
         /// </summary>
         /// <remarks>This method is supplied as part of the OpenGIS Simple Features Specification</remarks>
-        /// <param name="N"></param>
+        /// <param name="n"></param>
         /// <returns></returns>
-        public LinearRing InteriorRing(int N)
+        public LinearRing InteriorRing(int n)
         {
-            return _InteriorRings[N];
-        }
-
-        /// <summary>
-        /// Transforms the polygon to image coordinates, based on the map
-        /// </summary>
-        /// <param name="map">Map to base coordinates on</param>
-        /// <returns>Polygon in image coordinates</returns>
-        public PointF[] TransformToImage(Map map)
-        {
-            int vertices = _ExteriorRing.Vertices.Count;
-            for (int i = 0; i < _InteriorRings.Count; i++)
-                vertices += _InteriorRings[i].Vertices.Count;
-
-            PointF[] v = new PointF[vertices];
-            for (int i = 0; i < _ExteriorRing.Vertices.Count; i++)
-                v[i] = Transform.WorldtoMap(_ExteriorRing.Vertices[i], map);
-            int j = _ExteriorRing.Vertices.Count;
-            for (int k = 0; k < _InteriorRings.Count; k++)
-            {
-                for (int i = 0; i < _InteriorRings[k].Vertices.Count; i++)
-                    v[j + i] = Transform.WorldtoMap(_InteriorRings[k].Vertices[i], map);
-                j += _InteriorRings[k].Vertices.Count;
-            }
-            return v;
+            return interiorRings[n];
         }
 
         /// <summary>
@@ -169,14 +143,14 @@ namespace SharpMap.Geometries
         /// <returns>bounding box</returns>
         public override BoundingBox GetBoundingBox()
         {
-            if (_ExteriorRing == null || _ExteriorRing.Vertices.Count == 0) return null;
-            BoundingBox bbox = new BoundingBox(_ExteriorRing.Vertices[0], _ExteriorRing.Vertices[0]);
-            for (int i = 1; i < _ExteriorRing.Vertices.Count; i++)
+            if (exteriorRing == null || exteriorRing.Vertices.Count == 0) return null;
+            var bbox = new BoundingBox(exteriorRing.Vertices[0], exteriorRing.Vertices[0]);
+            for (int i = 1; i < exteriorRing.Vertices.Count; i++)
             {
-                bbox.Min.X = Math.Min(_ExteriorRing.Vertices[i].X, bbox.Min.X);
-                bbox.Min.Y = Math.Min(_ExteriorRing.Vertices[i].Y, bbox.Min.Y);
-                bbox.Max.X = Math.Max(_ExteriorRing.Vertices[i].X, bbox.Max.X);
-                bbox.Max.Y = Math.Max(_ExteriorRing.Vertices[i].Y, bbox.Max.Y);
+                bbox.Min.X = Math.Min(exteriorRing.Vertices[i].X, bbox.Min.X);
+                bbox.Min.Y = Math.Min(exteriorRing.Vertices[i].Y, bbox.Min.Y);
+                bbox.Max.X = Math.Max(exteriorRing.Vertices[i].X, bbox.Max.X);
+                bbox.Max.Y = Math.Max(exteriorRing.Vertices[i].Y, bbox.Max.Y);
             }
             return bbox;
         }
@@ -187,21 +161,13 @@ namespace SharpMap.Geometries
         /// <returns>Copy of Geometry</returns>
         public new Polygon Clone()
         {
-            Polygon p = new Polygon();
-            p.ExteriorRing = (LinearRing) _ExteriorRing.Clone();
-            for (int i = 0; i < _InteriorRings.Count; i++)
-                p.InteriorRings.Add(_InteriorRings[i].Clone() as LinearRing);
+            var p = new Polygon();
+            p.ExteriorRing = exteriorRing.Clone();
+            foreach (var t in interiorRings)
+                p.InteriorRings.Add(t.Clone());
             return p;
         }
 
-        #region "Inherited methods from abstract class Geometry"
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.Polygon;
-            }
-        }
 
         /// <summary>
         /// Determines if this Polygon and the specified Polygon object has the same values
@@ -230,9 +196,9 @@ namespace SharpMap.Geometries
         public override int GetHashCode()
         {
             int hash = ExteriorRing.GetHashCode();
-            ;
-            for (int i = 0; i < InteriorRings.Count; i++)
-                hash = hash ^ InteriorRings[i].GetHashCode();
+
+            foreach (var t in InteriorRings)
+                hash = hash ^ t.GetHashCode();
             return hash;
         }
 
@@ -243,16 +209,6 @@ namespace SharpMap.Geometries
         public override bool IsEmpty()
         {
             return (ExteriorRing == null) || (ExteriorRing.Vertices.Count == 0);
-        }
-
-        /// <summary>
-        /// Returns 'true' if this Geometry has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        public override bool IsSimple()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -276,24 +232,6 @@ namespace SharpMap.Geometries
         }
 
         /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        public override Geometry Buffer(double d)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        public override Geometry ConvexHull()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns a geometry that represents the point set intersection of this Geometry
         /// with anotherGeometry.
         /// </summary>
@@ -302,30 +240,5 @@ namespace SharpMap.Geometries
             throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        public override Geometry Union(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        public override Geometry Difference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        public override Geometry SymDifference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
     }
 }

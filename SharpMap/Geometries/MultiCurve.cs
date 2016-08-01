@@ -20,7 +20,7 @@ namespace SharpMap.Geometries
     /// <summary>
     /// A MultiCurve is a one-dimensional GeometryCollection whose elements are Curves
     /// </summary>
-    public abstract class MultiCurve : GeometryCollection, ILineal
+    public abstract class MultiCurve : GeometryCollection
     {
         /// <summary>
         ///  The inherent dimension of this Geometry object, which must be less than or equal to the coordinate dimension.
@@ -48,17 +48,8 @@ namespace SharpMap.Geometries
         /// <summary>
         /// Returns an indexed geometry in the collection
         /// </summary>
-        /// <param name="N">Geometry index</param>
+        /// <param name="n">Geometry index</param>
         /// <returns>Geometry at index N</returns>
-        public new abstract Geometry Geometry(int N);
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.MultiCurve;
-            }
-        }
-
+        public new abstract Geometry Geometry(int n);
     }
 }

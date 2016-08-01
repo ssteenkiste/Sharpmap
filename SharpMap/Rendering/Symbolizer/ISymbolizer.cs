@@ -41,12 +41,6 @@ namespace SharpMap.Rendering.Symbolizer
         /// <param name="map">The map</param>
         void End(Graphics g, IMapViewPort map);
 
-        /*
-        /// <summary>
-        /// Gets the icon for the symbolizer
-        /// </summary>
-        Image Icon { get; } 
-         */
     }
 
     /// <summary>

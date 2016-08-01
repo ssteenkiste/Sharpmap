@@ -455,7 +455,7 @@ namespace SharpMap
                         disposable.Dispose();
                     }
                 }
-                
+
             }
             if (Layers != null)
             {
@@ -669,15 +669,16 @@ namespace SharpMap
                 handler(this, e);
         }
 
-        #region Rendering
 
-        /// <summary>
-        /// Renders the map using the provided <see cref="Graphics"/> object.
-        /// </summary>
-        /// <param name="g">the <see cref="Graphics"/> object to use</param>
-        /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
-        /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
-        public void RenderMap(Graphics g)
+    #region Rendering
+
+    /// <summary>
+    /// Renders the map using the provided <see cref="Graphics"/> object.
+    /// </summary>
+    /// <param name="g">the <see cref="Graphics"/> object to use</param>
+    /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
+    /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
+    public void RenderMap(Graphics g)
         {
             OnMapRendering(g);
 
@@ -687,7 +688,7 @@ namespace SharpMap
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0))
                 throw new InvalidOperationException("No layers to render");
-            
+
             g.Transform = MapTransform;
             g.Clear(BackColor);
             g.PageUnit = GraphicsUnit.Pixel;
@@ -713,6 +714,9 @@ namespace SharpMap
                 }
             }
 
+
+
+
             if (_layers != null && _layers.Count > 0)
             {
                 layerList = _layers.ToList();
@@ -734,12 +738,12 @@ namespace SharpMap
                     OnLayerRendered(layer, LayerCollectionType.Static);
                 }
             }
-            
+
             // Render all map decorations
-            foreach (var mapDecoration in _decorations)
-            {
-                mapDecoration.Render(g, this);
-            }
+            //foreach (var mapDecoration in _decorations)
+            //{
+            //    mapDecoration.Render(g, this);
+            //}
 
             OnMapRendered(g);
         }
@@ -860,7 +864,6 @@ namespace SharpMap
                 }
             }
 
-            g.Transform = transform;
             if (layerCollectionType == LayerCollectionType.Static)
             {
                 if (drawMapDecorations)
@@ -871,58 +874,11 @@ namespace SharpMap
                     }
                 }
             }
+
+            g.Transform = transform;
         }
 
         #endregion
-
-       /* /// <summary>
-        /// Returns a cloned copy of this map-object.
-        /// Layers are not cloned. The same instances are referenced from the cloned copy as from the original.
-        /// The property <see cref="DisposeLayersOnDispose"/> is however false on this object (which prevents layers beeing disposed and then not usable from the original map)
-        /// </summary>
-        /// <returns>Instance of <see cref="Map"/></returns>
-        public Map Clone()
-        {
-            Map clone;
-            lock (MapTransform)
-            {
-                clone = new Map
-                {
-                    BackColor = BackColor,
-                    MaximumZoom = MaximumZoom,
-                    MinimumZoom = MinimumZoom,
-                    EnforceMaximumExtents = EnforceMaximumExtents,
-                    MaximumExtents = MaximumExtents,
-                    PixelAspectRatio = PixelAspectRatio,
-                    Zoom = Zoom,
-                    DisposeLayersOnDispose = false,
-                    SRID = SRID,
-                    _id = ID
-                };
-
-                if (MapTransform != null)
-                    clone.MapTransform = MapTransform.Clone();
-                if (!Size.IsEmpty)
-                    clone.Size = new Size(Size.Width, Size.Height);
-                if (Center != null)
-                    clone.Center = (Coordinate)Center.Clone();
-
-            }
-
-            if (BackgroundLayer != null)
-                clone.BackgroundLayer.AddCollection(BackgroundLayer.Clone());
-
-            for (var i = 0; i < Decorations.Count; i++)
-                clone.Decorations.Add(Decorations[i]);
-
-            if (Layers != null)
-                clone.Layers.AddCollection(Layers.Clone());
-
-            if (VariableLayers != null)
-                clone.VariableLayers.AddCollection(VariableLayers.Clone());
-
-            return clone;
-        }*/
 
         #region Layer
         /// <summary>
@@ -951,7 +907,7 @@ namespace SharpMap
             {
                 lay = BackgroundLayer.GetLayerByName(name);
             }
-            
+
             return lay;
         }
 
@@ -1004,7 +960,7 @@ namespace SharpMap
                     _center = center;
                     changed = true;
                 }
-                
+
                 if (changed)
                     OnMapViewChanged();
             }
@@ -1020,18 +976,19 @@ namespace SharpMap
         public PointF WorldToImage(Coordinate p, bool careAboutMapTransform)
         {
             var pTmp = Transform.WorldtoMap(p, this);
-            if (careAboutMapTransform)
+            if (!careAboutMapTransform)
+                return pTmp;
+
+            lock (MapTransform)
             {
-                lock (MapTransform)
+                if (!MapTransform.IsIdentity)
                 {
-                    if (!MapTransform.IsIdentity)
-                    {
-                        var pts = new[] { pTmp };
-                        MapTransform.TransformPoints(pts);
-                        pTmp = pts[0];
-                    }
+                    var pts = new[] { pTmp };
+                    MapTransform.TransformPoints(pts);
+                    pTmp = pts[0];
                 }
             }
+
             return pTmp;
         }
 
@@ -1378,7 +1335,7 @@ namespace SharpMap
                 }
             }
         }
-       
+
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
@@ -1521,7 +1478,7 @@ namespace SharpMap
             get { return _mapViewportGuard.Size; }
             set { _mapViewportGuard.Size = value; }
         }
-        
+
         /// <summary>
         /// Gets the extents of the map based on the extents of all the layers in the layers collection
         /// </summary>

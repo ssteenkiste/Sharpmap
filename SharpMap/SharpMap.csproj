@@ -219,6 +219,8 @@
     <Compile Include="Fetching\IFetchStrategy.cs" />
     <Compile Include="Fetching\TileFetcher.cs" />
     <Compile Include="Geometries\GeoAPIEx.cs" />
+    <Compile Include="Geometries\IRaster.cs" />
+    <Compile Include="Geometries\Raster.cs" />
     <Compile Include="Layers\DuplicateLayerException.cs" />
     <Compile Include="Layers\GdiImageLayer.cs" />
     <Compile Include="Layers\GdiImageLayerProxy.cs" />
@@ -237,12 +239,13 @@
     <Compile Include="Layers\TileAsyncLayer.cs" />
     <Compile Include="Layers\TiledWmsLayer.cs" />
     <Compile Include="Layers\TileLayer.cs" />
-    <Compile Include="Layers\VariableLayerCollection.cs" />
+    <Compile Include="Layers\LayerCollectionType.cs" />
     <Compile Include="Layers\VectorLayer.cs" />
     <Compile Include="Map\IMapViewPort.cs" />
     <Compile Include="Map\MapViewPort.cs" />
     <Compile Include="Rendering\LayerRenderingEventArgs.cs" />
     <Compile Include="Rendering\IMapRenderer.cs" />
+    <Compile Include="Rendering\GraphicsMapRenderer.cs" />
     <Compile Include="Rendering\MapRenderingResult.cs" />
     <Compile Include="Rendering\Thematics\FontSizeTheme.cs" />
     <Compile Include="Rendering\VisibleLayersIterator.cs" />

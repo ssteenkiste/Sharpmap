@@ -83,10 +83,6 @@ namespace SharpMap.Layers
         /// </summary>
         void CleanupRendering();
 
-        ///// <summary>
-        ///// Loads the layer datas.
-        ///// </summary>
-        //void LoadDatas(Map map);
     }
 
     /// <summary>

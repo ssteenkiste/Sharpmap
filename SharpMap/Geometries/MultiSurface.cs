@@ -27,7 +27,7 @@ namespace SharpMap.Geometries
     /// is included for reasons of extensibility. The instantiable subclass of MultiSurface is MultiPolygon,
     /// corresponding to a collection of Polygons.
     /// </remarks>
-    public abstract class MultiSurface : GeometryCollection, IPolygonal
+    public abstract class MultiSurface : GeometryCollection
     {
         /// <summary>
         /// The area of this Surface, as measured in the spatial reference system of this Surface.
@@ -52,14 +52,5 @@ namespace SharpMap.Geometries
         {
             get { return 2; }
         }
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.MultiSurface;
-            }
-        }
-
     }
 }

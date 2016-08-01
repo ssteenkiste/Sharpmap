@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using SharpMap.Utilities;
+using System.Linq;
 
 namespace SharpMap.Geometries
 {
@@ -27,10 +28,9 @@ namespace SharpMap.Geometries
     /// A LineString is a Curve with linear interpolation between points. Each consecutive pair of points defines a
     /// line segment.
     /// </summary>
-    [Serializable]
     public class LineString : Curve
     {
-        private IList<Point> _Vertices;
+        private IList<Point> _vertices;
 
         /// <summary>
         /// Initializes an instance of a LineString from a set of vertices
@@ -38,7 +38,7 @@ namespace SharpMap.Geometries
         /// <param name="vertices"></param>
         public LineString(IList<Point> vertices)
         {
-            _Vertices = vertices;
+            _vertices = vertices;
         }
 
         /// <summary>
@@ -54,21 +54,18 @@ namespace SharpMap.Geometries
         /// <param name="points"></param>
         public LineString(IEnumerable<double[]> points)
         {
-            Collection<Point> vertices = new Collection<Point>();
-
-            foreach (double[] point in points)
-                vertices.Add(new Point(point));
-
-            _Vertices = vertices;
+            var vertices = new Collection<Point>();
+            foreach (var point in points) vertices.Add(new Point(point));
+            _vertices = vertices;
         }
 
         /// <summary>
         /// Gets or sets the collection of vertices in this Geometry
         /// </summary>
-        public virtual IList<Point> Vertices
+        public IList<Point> Vertices
         {
-            get { return _Vertices; }
-            set { _Vertices = value; }
+            get { return _vertices; }
+            set { _vertices = value; }
         }
 
         /// <summary>
@@ -79,9 +76,9 @@ namespace SharpMap.Geometries
         {
             get
             {
-                if (_Vertices.Count == 0)
-                    throw new ApplicationException("No startpoint found: LineString has no vertices.");
-                return _Vertices[0];
+                if (_vertices.Count == 0)
+                    throw new Exception("No startpoint found: LineString has no vertices.");
+                return _vertices[0];
             }
         }
 
@@ -93,9 +90,9 @@ namespace SharpMap.Geometries
         {
             get
             {
-                if (_Vertices.Count == 0)
-                    throw new ApplicationException("No endpoint found: LineString has no vertices.");
-                return _Vertices[_Vertices.Count - 1];
+                if (_vertices.Count == 0)
+                    throw new Exception("No endpoint found: LineString has no vertices.");
+                return _vertices[_vertices.Count - 1];
             }
         }
 
@@ -123,42 +120,27 @@ namespace SharpMap.Geometries
             }
         }
 
-        #region OpenGIS Methods
 
         /// <summary>
         /// The number of points in this LineString.
         /// </summary>
         /// <remarks>This method is supplied as part of the OpenGIS Simple Features Specification</remarks>
-        public virtual int NumPoints
+        public int NumPoints
         {
-            get { return _Vertices.Count; }
+            get { return _vertices.Count; }
         }
 
         /// <summary>
         /// Returns the specified point N in this Linestring.
         /// </summary>
         /// <remarks>This method is supplied as part of the OpenGIS Simple Features Specification</remarks>
-        /// <param name="N"></param>
+        /// <param name="n"></param>
         /// <returns></returns>
-        public Point Point(int N)
+        public Point Point(int n)
         {
-            return _Vertices[N];
+            return _vertices[n];
         }
 
-        #endregion
-
-        /// <summary>
-        /// Transforms the linestring to image coordinates, based on the map
-        /// </summary>
-        /// <param name="map">Map to base coordinates on</param>
-        /// <returns>Linestring in image coordinates</returns>
-        public PointF[] TransformToImage(Map map)
-        {
-            PointF[] v = new PointF[_Vertices.Count];
-            for (int i = 0; i < Vertices.Count; i++)
-                v[i] = Transform.WorldtoMap(_Vertices[i], map);
-            return v;
-        }
 
         /// <summary>
         /// The position of a point on the line, parameterised by length.
@@ -178,7 +160,7 @@ namespace SharpMap.Geometries
         {
             if (Vertices == null || Vertices.Count == 0)
                 return null;
-            BoundingBox bbox = new BoundingBox(Vertices[0], Vertices[0]);
+            var bbox = new BoundingBox(Vertices[0], Vertices[0]);
             for (int i = 1; i < Vertices.Count; i++)
             {
                 bbox.Min.X = Vertices[i].X < bbox.Min.X ? Vertices[i].X : bbox.Min.X;
@@ -195,21 +177,12 @@ namespace SharpMap.Geometries
         /// <returns>Copy of Geometry</returns>
         public new LineString Clone()
         {
-            LineString l = new LineString();
-            for (int i = 0; i < _Vertices.Count; i++)
-                l.Vertices.Add(_Vertices[i].Clone());
+            var l = new LineString();
+            foreach (Point vertex in _vertices)
+                l.Vertices.Add(vertex.Clone());
             return l;
         }
 
-        #region "Inherited methods from abstract class Geometry"
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.LineString;
-            }
-        }
 
         /// <summary>
         /// Checks whether this instance is spatially equal to the LineString 'l'
@@ -235,10 +208,7 @@ namespace SharpMap.Geometries
         /// <returns>A hash code for the current <see cref="GetHashCode"/>.</returns>
         public override int GetHashCode()
         {
-            int hash = 0;
-            for (int i = 0; i < Vertices.Count; i++)
-                hash = hash ^ Vertices[i].GetHashCode();
-            return hash;
+            return Vertices.Aggregate(0, (current, t) => current ^ t.GetHashCode());
         }
 
         /// <summary>
@@ -247,7 +217,7 @@ namespace SharpMap.Geometries
         /// <returns>Returns 'true' if this Geometry is the empty geometry</returns>
         public override bool IsEmpty()
         {
-            return _Vertices == null || _Vertices.Count == 0;
+            return _vertices == null || _vertices.Count == 0;
         }
 
         /// <summary>
@@ -256,17 +226,15 @@ namespace SharpMap.Geometries
         /// conditions that cause an instance of that class to be classified as not simple.
         /// </summary>
         /// <returns>true if the geometry is simple</returns>
-        public override bool IsSimple()
+        public bool IsSimple()
         {
-            //Collection<Point> verts = new Collection<Point>(_Vertices.Count);
-            Collection<Point> verts = new Collection<Point>();
+            var verts = new Collection<Point>();
 
-            for (int i = 0; i < _Vertices.Count; i++)
-                //if (!verts.Exists(delegate(SharpMap.Geometries.Point p) { return p.Equals(_Vertices[i]); }))
-                if (0 != verts.IndexOf(_Vertices[i]))
-                    verts.Add(_Vertices[i]);
+            foreach (Point vertex in _vertices)
+                if (0 != verts.IndexOf(vertex))
+                    verts.Add(vertex);
 
-            return (verts.Count == _Vertices.Count - (IsClosed ? 1 : 0));
+            return (verts.Count == _vertices.Count - (IsClosed ? 1 : 0));
         }
 
         /// <summary>
@@ -289,67 +257,6 @@ namespace SharpMap.Geometries
         /// <returns>Shortest distance between any two points in the two geometries</returns>
         public override double Distance(Geometry geom)
         {
-            if (geom is Point)
-            {
-                IList<Point> coord0 = Vertices;
-                Point coord = geom as Point;
-                // brute force approach!
-                double minDist = double.MaxValue;
-                for (int i = 0; i < coord0.Count - 1; i++)
-                {
-                    double dist = CGAlgorithms.DistancePointLine(coord, coord0[i], coord0[i + 1]);
-                    if (dist < minDist)
-                    {
-                        minDist = dist;
-                    }
-                }
-                return minDist;
-            }
-            else if (geom is LineString)
-            {
-                IList<Point> coord0 = Vertices;
-                IList<Point> coord1 = (geom as LineString).Vertices;
-                // brute force approach!
-                double _minDistance = double.MaxValue;
-                for (int i = 0; i < coord0.Count - 1; i++)
-                {
-                    for (int j = 0; j < coord1.Count - 1; j++)
-                    {
-                        double dist = CGAlgorithms.DistanceLineLine(
-                                                        coord0[i], coord0[i + 1],
-                                                        coord1[j], coord1[j + 1]);
-                        if (dist < _minDistance)
-                        {
-                            _minDistance = dist;
-                        }
-                    }
-                }
-                return _minDistance;
-            }
-
-            throw new NotImplementedException();
-        }
-
-       
-
-        /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        /// <returns>Buffer around geometry</returns>
-        public override Geometry Buffer(double d)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        /// <returns>The convex hull</returns>
-        public override Geometry ConvexHull()
-        {
             throw new NotImplementedException();
         }
 
@@ -364,36 +271,5 @@ namespace SharpMap.Geometries
             throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to union with</param>
-        /// <returns>Unioned geometry</returns>
-        public override Geometry Union(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry Difference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry SymDifference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
     }
 }

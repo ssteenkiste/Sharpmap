@@ -25,17 +25,11 @@ namespace SharpMap.Geometries
     /// A Point is a 0-dimensional geometry and represents a single location in 2D coordinate space. A Point has a x coordinate
     /// value and a y-coordinate value. The boundary of a Point is the empty set.
     /// </summary>
-    [Serializable]
-    public class Point : Geometry, IComparable<Point>, IPuntal
+    public class Point : Geometry, IComparable<Point>
     {
-        //private bool _isEmpty;
-        private double _x;
-        private double _y;
-
-        /// <summary>
-        /// Null ordinate value
-        /// </summary>
-        public static readonly double NullOrdinate = Double.NaN;
+        private bool isEmpty;
+        private double x;
+        private double y;
 
         /// <summary>
         /// Initializes a new Point
@@ -44,16 +38,16 @@ namespace SharpMap.Geometries
         /// <param name="y">Y coordinate</param>
         public Point(double x, double y)
         {
-            _x = x;
-            _y = y;
+            this.x = x;
+            this.y = y;
         }
 
         /// <summary>
         /// Initializes a new empty Point
         /// </summary>
-        public Point() : this(NullOrdinate, NullOrdinate) //: this(0d, 0d)
+        public Point() : this(0, 0)
         {
-            //_isEmpty = true;
+            isEmpty = true;
         }
 
         /// <summary>
@@ -62,11 +56,11 @@ namespace SharpMap.Geometries
         /// <param name="point"></param>
         public Point(double[] point)
         {
-            if (point.Length < 2)
+            if (point.Length != 2)
                 throw new Exception("Only 2 dimensions are supported for points");
 
-            _x = point[0];
-            _y = point[1];
+            x = point[0];
+            y = point[1];
         }
 
         /// <summary>
@@ -74,16 +68,7 @@ namespace SharpMap.Geometries
         /// </summary>
         protected bool SetIsEmpty
         {
-            set
-            { 
-                if (value)
-                    _x = NullOrdinate;// _isEmpty = value;
-                else
-                {
-                    _x = 0d;
-                    _y = 0d;
-                }
-            }
+            set { isEmpty = value; }
         }
 
         /// <summary>
@@ -93,14 +78,14 @@ namespace SharpMap.Geometries
         {
             get
             {
-                if (!IsEmptyPoint)
-                    return _x;
-                throw new ApplicationException("Point is empty");
+                if (!isEmpty)
+                    return x;
+                throw new Exception("Point is empty");
             }
             set
             {
-                _x = value;
-                //_isEmpty = false;
+                x = value;
+                isEmpty = false;
             }
         }
 
@@ -111,14 +96,14 @@ namespace SharpMap.Geometries
         {
             get
             {
-                if (!IsEmptyPoint)
-                    return _y;
-                throw new ApplicationException("Point is empty");
+                if (!isEmpty)
+                    return y;
+                throw new Exception("Point is empty");
             }
             set
             {
-                _y = value;
-                //_isEmpty = false;
+                y = value;
+                isEmpty = false;
             }
         }
 
@@ -131,14 +116,15 @@ namespace SharpMap.Geometries
         {
             get
             {
-                if (IsEmptyPoint)
-                    throw new ApplicationException("Point is empty");
-                if (index == 0)
+                if (isEmpty)
+                    throw new Exception("Point is empty");
+                else if (index == 0)
                     return X;
-                if
+                else if
                     (index == 1)
                     return Y;
-                throw (new Exception("Point index out of bounds"));
+                else
+                    throw (new Exception("Point index out of bounds"));
             }
             set
             {
@@ -148,7 +134,7 @@ namespace SharpMap.Geometries
                     Y = value;
                 else
                     throw (new Exception("Point index out of bounds"));
-                //_isEmpty = false;
+                isEmpty = false;
             }
         }
 
@@ -160,7 +146,6 @@ namespace SharpMap.Geometries
             get { return 2; }
         }
 
-        #region IComparable<Point> Members
 
         /// <summary>
         /// Comparator used for ordering point first by ascending X, then by ascending Y.
@@ -171,12 +156,14 @@ namespace SharpMap.Geometries
         {
             if (X < other.X || X == other.X && Y < other.Y)
                 return -1;
+
             if (X > other.X || X == other.X && Y > other.Y)
                 return 1;
-            return 0;
+
+            else // (this.X == other.X && this.Y == other.Y)
+                return 0;
         }
 
-        #endregion
 
         /// <summary>
         /// exports a point into a 2-dimensional double array
@@ -184,7 +171,7 @@ namespace SharpMap.Geometries
         /// <returns></returns>
         public double[] ToDoubleArray()
         {
-            return new[] {_x, _y};
+            return new[] { x, y };
         }
 
         /// <summary>
@@ -201,8 +188,8 @@ namespace SharpMap.Geometries
         public static Point FromDMS(double longDegrees, double longMinutes, double longSeconds,
                                     double latDegrees, double latMinutes, double latSeconds)
         {
-            return new Point(longDegrees + longMinutes/60 + longSeconds/3600,
-                             latDegrees + latMinutes/60 + latSeconds/3600);
+            return new Point(longDegrees + longMinutes / 60 + longSeconds / 3600,
+                             latDegrees + latMinutes / 60 + latSeconds / 3600);
         }
 
         /// <summary>
@@ -211,17 +198,7 @@ namespace SharpMap.Geometries
         /// <returns><see cref="Point"/></returns>
         public Point AsPoint()
         {
-            return new Point(_x, _y);
-        }
-
-        /// <summary>
-        /// Transforms the point to image coordinates, based on the map
-        /// </summary>
-        /// <param name="map">Map to base coordinates on</param>
-        /// <returns>point in image coordinates</returns>
-        public PointF TransformToImage(Map map)
-        {
-            return Transform.WorldtoMap(this, map);
+            return new Point(x, y);
         }
 
         /// <summary>
@@ -233,7 +210,6 @@ namespace SharpMap.Geometries
             return new Point(X, Y);
         }
 
-        #region Operators
 
         /// <summary>
         /// Vector + Vector
@@ -266,20 +242,10 @@ namespace SharpMap.Geometries
         /// <returns></returns>
         public static Point operator *(Point m, double d)
         {
-            return new Point(m.X*d, m.Y*d);
+            return new Point(m.X * d, m.Y * d);
         }
 
-        #endregion
 
-        #region "Inherited methods from abstract class Geometry"
-
-        public override GeometryType2 GeometryType
-        {
-            get
-            {
-                return GeometryType2.Point;
-            }
-        }
 
         /// <summary>
         ///  The inherent dimension of this Geometry object, which must be less than or equal to the coordinate dimension.
@@ -294,9 +260,9 @@ namespace SharpMap.Geometries
         /// </summary>
         /// <param name="p">Point to compare to</param>
         /// <returns></returns>
-        public virtual bool Equals(Point p)
+        public bool Equals(Point p)
         {
-            return p != null && p.X == _x && p.Y == _y && IsEmptyPoint == p.IsEmptyPoint;
+            return p != null && p.X == x && p.Y == y && isEmpty == p.IsEmpty();
         }
 
         /// <summary>
@@ -306,10 +272,8 @@ namespace SharpMap.Geometries
         /// <returns>A hash code for the current <see cref="GetHashCode"/>.</returns>
         public override int GetHashCode()
         {
-            return _x.GetHashCode() ^ _y.GetHashCode() ^ IsEmptyPoint.GetHashCode();
+            return x.GetHashCode() ^ y.GetHashCode() ^ isEmpty.GetHashCode();
         }
-
-        protected bool IsEmptyPoint { get { return double.IsNaN(_x) || double.IsNaN(_y); } }
 
         /// <summary>
         /// If true, then this Geometry represents the empty point set, Ø, for the coordinate space. 
@@ -317,18 +281,7 @@ namespace SharpMap.Geometries
         /// <returns>Returns 'true' if this Geometry is the empty geometry</returns>
         public override bool IsEmpty()
         {
-            return IsEmptyPoint;
-        }
-
-        /// <summary>
-        /// Returns 'true' if this Geometry has no anomalous geometric points, such as self
-        /// intersection or self tangency. The description of each instantiable geometric class will include the specific
-        /// conditions that cause an instance of that class to be classified as not simple.
-        /// </summary>
-        /// <returns>true if the geometry is simple</returns>
-        public override bool IsSimple()
-        {
-            return true;
+            return isEmpty;
         }
 
         /// <summary>
@@ -348,21 +301,12 @@ namespace SharpMap.Geometries
         /// <returns></returns>
         public override double Distance(Geometry geom)
         {
-            if (geom.GetType() == typeof (Point))
+            if (geom.GetType() == typeof(Point))
             {
                 var p = geom as Point;
                 return Math.Sqrt(Math.Pow(X - p.X, 2) + Math.Pow(Y - p.Y, 2));
             }
-            else if (geom is LineString)
-            {
-                return geom.Distance(this);
-            }
-            else if (geom is MultiLineString)
-            {
-                return geom.Distance(this);
-            }
-            else
-                throw new Exception("The method or operation is not implemented for this geometry type.");
+            throw new Exception("The method or operation is not implemented for this geometry type.");
         }
 
         /// <summary>
@@ -376,63 +320,12 @@ namespace SharpMap.Geometries
         }
 
         /// <summary>
-        /// Returns a geometry that represents all points whose distance from this Geometry
-        /// is less than or equal to distance. Calculations are in the Spatial Reference
-        /// System of this Geometry.
-        /// </summary>
-        /// <param name="d">Buffer distance</param>
-        /// <returns>Buffer around geometry</returns>
-        public override Geometry Buffer(double d)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Geometry—Returns a geometry that represents the convex hull of this Geometry.
-        /// </summary>
-        /// <returns>The convex hull</returns>
-        public override Geometry ConvexHull()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Returns a geometry that represents the point set intersection of this Geometry
         /// with anotherGeometry.
         /// </summary>
         /// <param name="geom">Geometry to intersect with</param>
         /// <returns>Returns a geometry that represents the point set intersection of this Geometry with anotherGeometry.</returns>
         public override Geometry Intersection(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set union of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to union with</param>
-        /// <returns>Unioned geometry</returns>
-        public override Geometry Union(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry Difference(Geometry geom)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns a geometry that represents the point set symmetric difference of this Geometry with anotherGeometry.
-        /// </summary>
-        /// <param name="geom">Geometry to compare to</param>
-        /// <returns>Geometry</returns>
-        public override Geometry SymDifference(Geometry geom)
         {
             throw new NotImplementedException();
         }
@@ -463,7 +356,7 @@ namespace SharpMap.Geometries
         /// <returns>true if they touch</returns>
         public override bool Touches(Geometry geom)
         {
-            if (geom is Point) return Equals(geom);
+            if (geom is Point && Equals(geom)) return true;
             throw new NotImplementedException("Touches not implemented for this feature type");
         }
 
@@ -487,6 +380,38 @@ namespace SharpMap.Geometries
             return false;
         }
 
-        #endregion
+        /// <summary>
+        /// Calculates a new point by rotating this point clockwise about the specified center point
+        /// </summary>
+        /// <param name="degrees">Angle to rotate clockwise (degrees)</param>
+        /// <param name="centerX">X coordinate of point about which to rotate</param>
+        /// <param name="centerY">Y coordinate of point about which to rotate</param>
+        /// <returns>Returns the rotated point</returns>
+        public Point Rotate(double degrees, double centerX, double centerY)
+        {
+            // translate this point back to the center
+            var newX = x - centerX;
+            var newY = y - centerY;
+
+            // rotate the values
+            var p = Algorithms.RotateClockwiseDegrees(newX, newY, degrees);
+
+            // translate back to original reference frame
+            newX = p.X + centerX;
+            newY = p.Y + centerY;
+
+            return new Point(newX, newY);
+        }
+
+        /// <summary>
+        /// Calculates a new point by rotating this point clockwise about the specified center point
+        /// </summary>
+        /// <param name="degrees">Angle to rotate clockwise (degrees)</param>
+        /// <param name="center">Point about which to rotate</param>
+        /// <returns>Returns the rotated point</returns>
+        public Point Rotate(double degrees, Point center)
+        {
+            return Rotate(degrees, center.X, center.Y);
+        }
     }
 }
