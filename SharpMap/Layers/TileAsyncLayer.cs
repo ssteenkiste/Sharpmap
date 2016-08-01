@@ -35,7 +35,6 @@ namespace SharpMap.Layers
         private readonly int _maxRetries = TileFetcher.DEFAULT_MAX_ATTEMPTS;
         private readonly int _maxThreads = TileFetcher.DEFAULT_MAX_THREADS;
         private readonly IFetchStrategy _fetchStrategy = new FetchStrategy();
-        //private readonly IRenderGetStrategy _renderFetchStrategy = new 
         private readonly int _minExtraTiles = 0;
         private readonly int _maxExtraTiles = 0;
         private int _numberTilesNeeded;
@@ -152,6 +151,9 @@ namespace SharpMap.Layers
 
         }
 
+        /// <summary>
+        /// Cleanup resources.
+        /// </summary>
         protected override void ReleaseUnmanagedResources()
         {
             AbortFetch();
@@ -170,9 +172,10 @@ namespace SharpMap.Layers
         private void TileFetcherDataChanged(object sender, DataChangedEventArgs e)
         {
 
-            OnMapNewTileAvaliable(e.TileInfo, e.Image);
+            //OnMapNewTileAvaliable(e.TileInfo, e.Image);
             OnLayerDataLoaded();
 
+            e.Layer = this;
             if (DataChanged != null)
             {
                 DataChanged(this, e);
@@ -193,6 +196,8 @@ namespace SharpMap.Layers
         /// EventHandler for event fired when a new Tile is available for rendering
         /// </summary>
         public event MapNewTileAvaliabledHandler MapNewTileAvaliable;
+
+
         public event DataChangedEventHandler DataChanged;
 
 
@@ -210,18 +215,26 @@ namespace SharpMap.Layers
 
             var dictionary = new Dictionary<TileIndex, Tuple<TileInfo, Stream>>();
             var levelId = BruTile.Utilities.GetNearestLevel(_source.Schema.Resolutions, map.PixelSize);
-            //var tiles = _strategy.GetTilesWanted(_source.Schema, extent, level); // _source.Schema.GetTileInfos(extent, level);
+
             GetTilesWanted(dictionary, _source.Schema, _bitmaps, _fileCache, extent, levelId);
             var sortedFeatures = dictionary.OrderByDescending(t => _source.Schema.Resolutions[t.Key.Level].UnitsPerPixel);
             var tiles = sortedFeatures.ToDictionary(pair => pair.Key, pair => pair.Value).Values.ToList();
 
             using (var imageAttributes = new ImageAttributes())
             {
+
                 if (!_transparentColor.IsEmpty)
                     imageAttributes.SetColorKey(_transparentColor, _transparentColor);
 #if !PocketPC
                 imageAttributes.SetWrapMode(WrapMode.TileFlipXY);
 #endif
+
+                if (Opacity < 1.0f)
+                {
+                    var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
+                    imageAttributes.SetColorMatrix(matrix);
+                }
+               
                 var tileWidth = _source.Schema.GetTileWidth(levelId);
                 var tileHeight = _source.Schema.GetTileHeight(levelId);
 
@@ -245,7 +258,6 @@ namespace SharpMap.Layers
                             bmp.Position = 0;
                             using (var bitmap = new Bitmap(bmp))
                             {
-
                                 graphics.DrawImage(bitmap,
                                     new Rectangle((int)min.X, (int)max.Y, (int)(max.X - min.X), (int)(min.Y - max.Y)),
                                     0, 0,
@@ -253,7 +265,6 @@ namespace SharpMap.Layers
                                     GraphicsUnit.Pixel,
                                     imageAttributes);
 
-                              
                             }
                         }
                         catch (Exception ex)
@@ -282,6 +293,12 @@ namespace SharpMap.Layers
 #if !PocketPC
                     ia.SetWrapMode(WrapMode.TileFlipXY);
 #endif
+                    if (Opacity < 1.0f)
+                    {
+                        var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
+                        ia.SetColorMatrix(matrix);
+                    }
+
                     var tileWidth = _source.Schema.GetTileWidth(tileInfo.Index.Level);
                     var tileHeight = _source.Schema.GetTileHeight(tileInfo.Index.Level);
                     MapNewTileAvaliable(this, bb, bitmap, tileWidth, tileHeight, ia);
@@ -348,8 +365,6 @@ namespace SharpMap.Layers
             if (resolutionIndex < 0 || resolutionIndex >= resolutions.Count)
                 return;
             var tiles = schema.GetTileInfos(extent, resolutions[resolutionIndex].Key);
-            //var tiles = schema.GetTileInfos(extent, resolutions[resolutionIndex].Key).OrderBy(
-            //        t => Algorithms.Distance(extent.CenterX, extent.CenterY, t.Extent.CenterX, t.Extent.CenterY)); ;
 
             foreach (var tileInfo in tiles)
             {
@@ -383,13 +398,9 @@ namespace SharpMap.Layers
                             GetRecursiveTiles(resultTiles, schema, bitmaps, cache, tileInfo.Extent.Intersect(extent), resolutions, resolutionIndex - 1);
                         }
                     }
-
                 }
-
-
             }
         }
-
     }
 
 

@@ -88,6 +88,14 @@ namespace SharpMap.Layers
             set { _interpolationMode = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the opacity.
+        /// </summary>
+        public float Opacity
+        {
+            get;
+            set;
+        }
 
         #endregion
 
@@ -225,6 +233,11 @@ namespace SharpMap.Layers
 #if !PocketPC
                         ia.SetWrapMode(WrapMode.TileFlipXY);
 #endif
+                        if (Opacity < 1.0f)
+                        {
+                            var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
+                            ia.SetColorMatrix(matrix);
+                        }
 
                         foreach (var info in tiles)
                         {
