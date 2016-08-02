@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Drawing;
+using NetTopologySuite.Operation.Buffer;
 
 namespace SharpMap.Utilities
 {
@@ -12,6 +13,8 @@ namespace SharpMap.Utilities
     public class LineOffset
     {
         
+        
+
         /// <summary>
         /// Offset a Linestring the given amount perpendicular to the line
         /// For example if a line should be drawn 10px to the right of its original position
@@ -24,7 +27,7 @@ namespace SharpMap.Utilities
         /// <returns>Array of coordinates for the offseted line</returns>
         public static PointF[] OffsetPolyline(PointF[] lineCoordinates, float offset)
         {
-            List<PointF> retPoints = new List<PointF>();
+            List <PointF> retPoints = new List<PointF>();
             PointF old_pt, old_diffdir = PointF.Empty, old_offdir = PointF.Empty;
             int idx = 0;
             bool first = true;
@@ -129,5 +132,7 @@ namespace SharpMap.Utilities
         #endregion
 
         static readonly double CURVE_SIN_LIMIT = 0.3;
+
+
     }
 }

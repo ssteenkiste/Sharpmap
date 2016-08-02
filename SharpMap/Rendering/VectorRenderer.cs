@@ -143,7 +143,7 @@ namespace SharpMap.Rendering
                 using (var gp = new GraphicsPath())
                 {
                     if (Math.Abs(offset) > NEAR_ZERO)
-                        points = OffsetRight(points, offset);
+                        points = LineOffset.OffsetPolyline(points, offset);//OffsetRight(points, offset);
                     gp.AddLines(/*LimitValues(*/points/*, ExtremeValueLimit)*/);
 
                     g.DrawPath(pen, gp);
