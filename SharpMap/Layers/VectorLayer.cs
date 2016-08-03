@@ -256,76 +256,60 @@ namespace SharpMap.Layers
         protected virtual void RenderInternal(Graphics g, IMapViewPort map, Envelope envelope, ITheme theme)
         {
             var useCache = _dataCache != null;
-            FeatureDataSet ds;
-            if (!useCache)
+
+            FeatureDataSet ds = _dataCache;
+
+            if (ds == null || ds.Tables.Count == 0)
             {
-                ds = new FeatureDataSet();
-                lock (_dataSource)
-                {
-                    DataSource.Open();
-                    DataSource.ExecuteIntersectionQuery(envelope, ds);
-                    DataSource.Close();
-                }
-            }
-            else
-            {
-                ds = _dataCache;
+                base.Render(g, map);
+                return;
             }
 
-            try
+            foreach (var features in ds.Tables)
             {
-                foreach (var features in ds.Tables)
+
+
+                //Linestring outlines is drawn by drawing the layer once with a thicker line
+                //before drawing the "inline" on top.
+                if (Style.EnableOutline)
                 {
-  
-
-                    //Linestring outlines is drawn by drawing the layer once with a thicker line
-                    //before drawing the "inline" on top.
-                    if (Style.EnableOutline)
-                    {
-
-                        for (var i = 0; i < features.Count; i++)
-                        {
-                            var feature = features[i];
-                            using (var outlineStyle = theme.GetStyle(feature) as VectorStyle)
-                            {
-                                ApplyStyle(g, map, outlineStyle, (graphics, map1, style) =>
-                                  {
-                                      //Draw background of all line-outlines first
-                                      var lineString = feature.Geometry as ILineString;
-                                      if (lineString != null)
-                                      {
-                                          VectorRenderer.DrawLineString(g, lineString, style.Outline,
-                                              map, style.LineOffset);
-                                      }
-                                      else if (feature.Geometry is IMultiLineString)
-                                      {
-                                          VectorRenderer.DrawMultiLineString(g, (IMultiLineString)feature.Geometry,
-                                              style.Outline, map, style.LineOffset);
-                                      }
-                                  }
-                                  );
-
-                            }
-                        }
-                    }
-
 
                     for (var i = 0; i < features.Count; i++)
                     {
                         var feature = features[i];
-                        var style = theme.GetStyle(feature);
+                        using (var outlineStyle = theme.GetStyle(feature) as VectorStyle)
+                        {
+                            ApplyStyle(g, map, outlineStyle, (graphics, map1, style) =>
+                              {
+                                      //Draw background of all line-outlines first
+                                      var lineString = feature.Geometry as ILineString;
+                                  if (lineString != null)
+                                  {
+                                      VectorRenderer.DrawLineString(g, lineString, style.Outline,
+                                          map, style.LineOffset);
+                                  }
+                                  else if (feature.Geometry is IMultiLineString)
+                                  {
+                                      VectorRenderer.DrawMultiLineString(g, (IMultiLineString)feature.Geometry,
+                                          style.Outline, map, style.LineOffset);
+                                  }
+                              }
+                              );
 
-                        ApplyStyle(g, map, style, (graphics, map1, vstyle) => RenderGeometry(g, map, feature.Geometry, vstyle));
+                        }
                     }
                 }
-            }
-            finally
-            {
-                if (!useCache)
+
+
+                for (var i = 0; i < features.Count; i++)
                 {
-                    ds.Dispose();
+                    var feature = features[i];
+                    var style = theme.GetStyle(feature);
+
+                    ApplyStyle(g, map, style, (graphics, map1, vstyle) => RenderGeometry(g, map, feature.Geometry, vstyle));
                 }
             }
+
         }
 
         /// <summary>
@@ -370,7 +354,7 @@ namespace SharpMap.Layers
                     {
                         if (vStyle.LineSymbolizer != null)
                         {
-                            vStyle.LineSymbolizer.Begin(g, map,features.Count);
+                            vStyle.LineSymbolizer.Begin(g, map, features.Count);
                         }
                         else
                         {
