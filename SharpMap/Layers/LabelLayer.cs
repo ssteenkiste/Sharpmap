@@ -32,6 +32,7 @@ using Transform = SharpMap.Utilities.Transform;
 using SharpMap.Rendering.Symbolizer;
 using SharpMap.Fetching;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SharpMap.Layers
 {
@@ -369,6 +370,8 @@ namespace SharpMap.Layers
         /// </summary>
         protected override void ReleaseManagedResources()
         {
+            ClearCache();
+
             if (DataSource != null)
                 DataSource.Dispose();
             base.ReleaseManagedResources();
@@ -393,11 +396,9 @@ namespace SharpMap.Layers
             var lineClipping = new CohenSutherlandLineClipping(mapEnvelope.MinX, mapEnvelope.MinY,
                 mapEnvelope.MaxX, mapEnvelope.MaxY);
 
-            var ds = new FeatureDataSet();
-            DataSource.Open();
-            DataSource.ExecuteIntersectionQuery(layerEnvelope, ds);
-            DataSource.Close();
-            if (ds.Tables.Count == 0)
+            FeatureDataSet ds = _dataCache;
+                      
+            if (ds == null || ds.Tables.Count == 0)
             {
                 base.Render(g, map);
                 return;
@@ -414,7 +415,6 @@ namespace SharpMap.Layers
             for (int i = 0; i < features.Count; i++)
             {
                 var feature = features[i];
-                feature.Geometry = ToTarget(feature.Geometry);
 
                 LabelStyle style;
                 if (Theme != null) //If thematics is enabled, lets override the style
@@ -425,15 +425,15 @@ namespace SharpMap.Layers
                 float rotationStyle = style != null ? style.Rotation : 0f;
                 float rotationColumn = 0f;
                 if (!string.IsNullOrEmpty(RotationColumn))
-                    Single.TryParse(feature[RotationColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
+                    float.TryParse(feature[RotationColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
                         out rotationColumn);
                 float rotation = rotationStyle + rotationColumn;
 
                 int priority = Priority;
                 if (_getPriorityMethod != null)
                     priority = _getPriorityMethod(feature);
-                else if (!String.IsNullOrEmpty(PriorityColumn))
-                    Int32.TryParse(feature[PriorityColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
+                else if (!string.IsNullOrEmpty(PriorityColumn))
+                    int.TryParse(feature[PriorityColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
                         out priority);
 
                 string text;
@@ -442,7 +442,7 @@ namespace SharpMap.Layers
                 else
                     text = feature[LabelColumn].ToString();
 
-                if (!String.IsNullOrEmpty(text))
+                if (!string.IsNullOrEmpty(text))
                 {
                     // for lineal geometries, try clipping to ensure proper labeling
                     if (feature.Geometry is ILineal)
@@ -1029,6 +1029,98 @@ namespace SharpMap.Layers
             base.OnLayerDataLoaded();
         }
 
+        /// <summary>
+        /// Load datas.
+        /// </summary>
+        /// <param name="view"></param>
+        public override void LoadDatas(IMapViewPort view)
+        {
+            NewEnvelope = view.Envelope;
+
+            if (IsFetching)
+            {
+                NeedsUpdate = true;
+                return;
+            }
+
+            if (StartFetchTimer != null) StartFetchTimer.Dispose();
+            StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
+        }
+
+        void StartFetchTimerElapsed(object state)
+        {
+            if (NewEnvelope == null) return;
+            LoadDatas(NewEnvelope);
+            StartFetchTimer.Dispose();
+        }
+        /// <summary>
+        /// Loads the datas.
+        /// </summary>
+        /// <param name="envelope"></param>
+        protected void LoadDatas(Envelope envelope)
+        {
+            if (IsDisposed) return;
+            IsFetching = true;
+            NeedsUpdate = false;
+            var newenvelope = ToSource(envelope);
+            var ds = new FeatureDataSet();
+
+            var fetcher = new FeaturesFetcher(newenvelope, ds, _dataSource, DataArrived);
+            Task.Factory.StartNew(() => fetcher.FetchOnThread(null));
+        }
+
+        /// <summary>
+        /// Called when data are loaded.
+        /// </summary>
+        /// <param name="ds"></param>
+        /// <param name="state"></param>
+        /// <param name="error"></param>
+        protected void DataArrived(FeatureDataSet ds, object state = null, Exception error = null)
+        {
+            if (ds == null) throw new ArgumentException("argument features may not be null");
+
+            try
+            {
+                // Transform geometries if necessary
+                if (CoordinateTransformation != null)
+                {
+                    foreach (var features in ds.Tables)
+                    {
+                        for (var i = 0; i < features.Count; i++)
+                        {
+                            features[i].Geometry = ToTarget(features[i].Geometry);
+                        }
+                    }
+                }
+
+                var oldDatas = _dataCache;
+                _dataCache = ds;
+
+                OnLayerDataLoaded();
+
+                if (oldDatas != null)
+                {
+                    oldDatas.Dispose();
+                }
+                IsFetching = false;
+                if (NeedsUpdate) LoadDatas(NewEnvelope);
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
+
+        }
+
+        /// <summary>
+        /// Gets the datas
+        /// </summary>
+        /// <returns></returns>
+        public FeatureDataSet GetDatas()
+        {
+            return _dataCache;
+        }
+
         public void AbortFetch()
         {
             throw new NotImplementedException();
@@ -1036,7 +1128,12 @@ namespace SharpMap.Layers
 
         public void ClearCache()
         {
-            throw new NotImplementedException();
+            var oldDatas = _dataCache;
+            _dataCache = null;
+            if (oldDatas != null)
+            {
+                oldDatas.Dispose();
+            }
         }
 
         #endregion
