@@ -29,11 +29,11 @@ namespace SharpMap.Fetching
         private readonly int _maxAttempts;
         private volatile bool _isThreadRunning;
         private volatile bool _isViewChanged;
-        public const int DEFAULT_MAX_THREADS = 2;
+        public const int DEFAULT_MAX_THREADS = 4;
         public const int DEFAULT_MAX_ATTEMPTS = 2;
         private bool _busy;
         private int _numberTilesNeeded;
-        private readonly FileCache _fileCache = null;
+        private readonly FileCache _fileCache;
 
         /// <summary>
         /// Event raised when data has change.
