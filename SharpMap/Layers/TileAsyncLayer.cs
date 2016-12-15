@@ -238,11 +238,11 @@ namespace SharpMap.Layers
                 imageAttributes.SetWrapMode(WrapMode.TileFlipXY);
 #endif
 
-                //if (Opacity < 1.0f)
-                //{
-                //    var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
-                //    imageAttributes.SetColorMatrix(matrix);
-                //}
+                if (Opacity < 1.0f)
+                {
+                    var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
+                    imageAttributes.SetColorMatrix(matrix);
+                }
 
                 var tileWidth = schema.GetTileWidth(levelId);
                 var tileHeight = schema.GetTileHeight(levelId);
