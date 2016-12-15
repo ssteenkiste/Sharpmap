@@ -138,6 +138,7 @@ namespace SharpMap
         private readonly List<IMapDecoration> _decorations = new List<IMapDecoration>();
 
         private Color _backgroundColor;
+        private float _backgroundMaskOpacity;
         private Guid _id = Guid.NewGuid();
         private int _srid = -1;
         private double _zoom;
@@ -224,7 +225,11 @@ namespace SharpMap
             {
                 IterWireEvents(sender, e.NewItems.Cast<ILayer>());
             }
-            ViewChanged();
+
+            if (!_disposing)
+            {
+                ViewChanged();
+            }
         }
 
         private void IterWireEvents(object owner, IEnumerable<ILayer> layers)
@@ -430,6 +435,8 @@ namespace SharpMap
             }
         }
 
+        private bool _disposing;
+
         #region IDisposable Members
 
         /// <summary>
@@ -437,6 +444,7 @@ namespace SharpMap
         /// </summary>
         public void Dispose()
         {
+            _disposing = true;
             AbortFetch();
 
             if (DisposeLayersOnDispose)
@@ -457,14 +465,8 @@ namespace SharpMap
                 }
 
             }
-            if (Layers != null)
-            {
-                Layers.Clear();
-            }
-            if (BackgroundLayer != null)
-            {
-                BackgroundLayer.Clear();
-            }
+            Layers?.Clear();
+            BackgroundLayer?.Clear();
         }
 
         #endregion
@@ -664,26 +666,24 @@ namespace SharpMap
         /// <param name="e">EventArgs argument.</param>
         public virtual void OnRefreshNeeded(EventArgs e)
         {
-            var handler = RefreshNeeded;
-            if (handler != null)
-                handler(this, e);
+            RefreshNeeded?.Invoke(this, e);
         }
 
 
-    #region Rendering
+        #region Rendering
 
-    /// <summary>
-    /// Renders the map using the provided <see cref="Graphics"/> object.
-    /// </summary>
-    /// <param name="g">the <see cref="Graphics"/> object to use</param>
-    /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
-    /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
-    public void RenderMap(Graphics g)
+        /// <summary>
+        /// Renders the map using the provided <see cref="Graphics"/> object.
+        /// </summary>
+        /// <param name="g">the <see cref="Graphics"/> object to use</param>
+        /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
+        /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
+        public void RenderMap(Graphics g)
         {
             OnMapRendering(g);
 
             if (g == null)
-                throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
+                throw new ArgumentNullException(nameof(g), "Cannot render map with null graphics object!");
 
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0))
@@ -714,8 +714,17 @@ namespace SharpMap
                 }
             }
 
+            if (BackgroundMaskOpacity > 0)
+            {
 
+                var opacity = (int) (BackgroundMaskOpacity*255);
+                if (opacity > 255)
+                {
+                    opacity = 255;
+                }
 
+                g.FillRectangle(new SolidBrush(Color.FromArgb(opacity, BackColor.R, BackColor.G, BackColor.B)), g.ClipBounds);
+            }
 
             if (_layers != null && _layers.Count > 0)
             {
@@ -1075,10 +1084,7 @@ namespace SharpMap
         /// <summary>
         /// List of all map decorations
         /// </summary>
-        public IList<IMapDecoration> Decorations
-        {
-            get { return _decorations; }
-        }
+        public IList<IMapDecoration> Decorations => _decorations;
 
         /// <summary>
         /// Gets the extents of the current map based on the current zoom, center and mapsize
@@ -1137,18 +1143,12 @@ namespace SharpMap
         /// <summary>
         /// A collection of layers. The first layer in the list is drawn first, the last one on top.
         /// </summary>
-        public LayerCollection Layers
-        {
-            get { return _layers; }
-        }
+        public LayerCollection Layers => _layers;
 
         /// <summary>
         /// Collection of background Layers
         /// </summary>
-        public LayerCollection BackgroundLayer
-        {
-            get { return _backgroundLayers; }
-        }
+        public LayerCollection BackgroundLayer => _backgroundLayers;
 
         /// <summary>
         /// Map background color (defaults to transparent)
@@ -1162,6 +1162,16 @@ namespace SharpMap
                 OnMapViewChanged();
             }
         }
+        /// <summary>
+        /// Gets or sets the background mask opacity
+        /// </summary>
+        public float BackgroundMaskOpacity
+        {
+            get { return _backgroundMaskOpacity; }
+            set { _backgroundMaskOpacity = value; OnMapViewChanged(); }
+
+        }
+
 
         private const double PRECISION_TOLERANCE = 0.00000001;
 
@@ -1339,7 +1349,7 @@ namespace SharpMap
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
         protected Envelope NewEnvelope;
-        public int FetchingPostponedInMilliseconds { get { return 500; } }
+        public int FetchingPostponedInMilliseconds => 500;
         protected Timer StartFetchTimer;
 
         void FetchDatas()
@@ -1354,7 +1364,7 @@ namespace SharpMap
                 return;
             }
 
-            if (StartFetchTimer != null) StartFetchTimer.Dispose();
+            StartFetchTimer?.Dispose();
             StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
         }
 
@@ -1424,28 +1434,19 @@ namespace SharpMap
         /// <summary>
         /// Get Returns the size of a pixel in world coordinate units
         /// </summary>
-        public double PixelSize
-        {
-            get { return Zoom / Size.Width; }
-        }
+        public double PixelSize => Zoom / Size.Width;
 
         /// <summary>
         /// Returns the width of a pixel in world coordinate units.
         /// </summary>
         /// <remarks>The value returned is the same as <see cref="PixelSize"/>.</remarks>
-        public double PixelWidth
-        {
-            get { return PixelSize; }
-        }
+        public double PixelWidth => PixelSize;
 
         /// <summary>
         /// Returns the height of a pixel in world coordinate units.
         /// </summary>
         /// <remarks>The value returned is the same as <see cref="PixelSize"/> unless <see cref="PixelAspectRatio"/> is different from 1.</remarks>
-        public double PixelHeight
-        {
-            get { return PixelSize * _mapViewportGuard.PixelAspectRatio; }
-        }
+        public double PixelHeight => PixelSize * _mapViewportGuard.PixelAspectRatio;
 
         /// <summary>
         /// Gets or sets the aspect-ratio of the pixel scales. A value less than 
@@ -1465,10 +1466,7 @@ namespace SharpMap
         /// Height of map in world units
         /// </summary>
         /// <returns></returns>
-        public double MapHeight
-        {
-            get { return (Zoom * Size.Height) / Size.Width * PixelAspectRatio; }
-        }
+        public double MapHeight => (Zoom * Size.Height) / Size.Width * PixelAspectRatio;
 
         /// <summary>
         /// Size of output map

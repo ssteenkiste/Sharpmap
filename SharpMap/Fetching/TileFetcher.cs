@@ -1,4 +1,6 @@
-﻿namespace SharpMap.Fetching
+﻿using System.Threading.Tasks;
+
+namespace SharpMap.Fetching
 {
 
     using System;
@@ -27,7 +29,7 @@
         private readonly int _maxAttempts;
         private volatile bool _isThreadRunning;
         private volatile bool _isViewChanged;
-        public const int DEFAULT_MAX_THREADS = 4;
+        public const int DEFAULT_MAX_THREADS = 2;
         public const int DEFAULT_MAX_ATTEMPTS = 2;
         private bool _busy;
         private int _numberTilesNeeded;
@@ -65,7 +67,7 @@
         public bool Busy
         {
             get { return _busy; }
-            set
+            private set
             {
                 if (_busy == value) return; // prevent notify              
                 _busy = value;
@@ -76,10 +78,7 @@
         /// <summary>
         /// Gets the number tiles needed.
         /// </summary>
-        public int NumberTilesNeeded
-        {
-            get { return _numberTilesNeeded; }
-        }
+        public int NumberTilesNeeded => _numberTilesNeeded;
 
         /// <summary>
         /// Call a view change.
@@ -103,7 +102,7 @@
         private void StartLoopThread()
         {
             _isThreadRunning = true;
-            ThreadPool.QueueUserWorkItem(TileFetchLoop);
+            Task.Run(() => TileFetchLoop());
         }
 
         /// <summary>
@@ -115,7 +114,7 @@
             _waitHandle.Set();
         }
 
-        private void TileFetchLoop(object state)
+        private void TileFetchLoop()
         {
             try
             {
@@ -130,17 +129,17 @@
 
                     if (_isViewChanged && (_tileSource.Schema != null))
                     {
+                        _isViewChanged = false;
                         var levelId = BruTile.Utilities.GetNearestLevel(_tileSource.Schema.Resolutions, _resolution);
                         _missingTiles = _strategy.GetTilesWanted(_tileSource.Schema, _extent, levelId);
                         _numberTilesNeeded = _missingTiles.Count;
+
                         retries.Clear();
-                        _isViewChanged = false;
                     }
 
-                    _missingTiles = GetTilesMissing(_missingTiles, _memoryCache, retries);
+                    _missingTiles = GetTilesMissing(_missingTiles, _memoryCache, _fileCache, retries);
 
                     FetchTiles(retries);
-
                     if (_missingTiles.Count == 0)
                     {
                         Busy = false;
@@ -156,15 +155,21 @@
             }
         }
 
-        private static IList<TileInfo> GetTilesMissing(IEnumerable<TileInfo> tileInfos, MemoryCache<Stream> memoryCache,
+        private static IList<TileInfo> GetTilesMissing(IEnumerable<TileInfo> tileInfos, MemoryCache<Stream> memoryCache, FileCache fileCache,
             Retries retries)
         {
             var result = new List<TileInfo>();
 
             foreach (var info in tileInfos)
             {
-                if (retries.ReachedMax(info.Index)) continue;
-                if (memoryCache.Find(info.Index) == null) result.Add(info);
+                if (retries.ReachedMax(info.Index))
+                {
+                    continue;
+                }
+                if (memoryCache.Find(info.Index) == null)
+                {
+                    result.Add(info);
+                }
             }
 
             return result;
@@ -198,22 +203,18 @@
         private void StartFetchOnThread(TileInfo info)
         {
             var fetchOnThread = new FetchOnThread(_tileSource, info, LocalFetchCompleted);
-            ThreadPool.QueueUserWorkItem(fetchOnThread.FetchTile);
+            Task.Run(() => fetchOnThread.FetchTile());
         }
 
         private void LocalFetchCompleted(object sender, FetchTileCompletedEventArgs e)
         {
-            //todo remove object sender
             try
             {
                 if (e.Error == null && e.Cancelled == false && _isThreadRunning && e.Image != null)
                 {
                     var ms = new MemoryStream(e.Image);
                     _memoryCache.Add(e.TileInfo.Index, ms);
-                    if(_fileCache!=null)
-                    {
-                        _fileCache.Add(e.TileInfo.Index, e.Image);
-                    }
+                    _fileCache?.Add(e.TileInfo.Index, e.Image);
                 }
             }
             catch (Exception ex)
@@ -231,8 +232,7 @@
                 _waitHandle.Set();
             }
 
-            if (DataChanged != null)
-                DataChanged(this, new DataChangedEventArgs(e.Error, e.Cancelled, e.TileInfo) { Image = e.Image });
+            DataChanged?.Invoke(this, new DataChangedEventArgs(e.Error, e.Cancelled, e.TileInfo) { Image = e.Image });
         }
 
         /// <summary>
@@ -285,10 +285,9 @@
         /// Raises the property change event.
         /// </summary>
         /// <param name="propertyName"></param>
-        protected virtual void OnPropertyChanged(string propertyName)
+        private void OnPropertyChanged(string propertyName)
         {
-            var handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

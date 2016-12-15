@@ -21,8 +21,7 @@ namespace SharpMap.Fetching
         /// <summary>
         /// Fetchs a tile.
         /// </summary>
-        /// <param name="state"></param>
-        public void FetchTile(object state)
+        public void FetchTile()
         {
             Exception error = null;
             byte[] image = null;

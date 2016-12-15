@@ -4,149 +4,85 @@ using GeoAPI.Geometries;
 
 namespace SharpMap
 {
-
+    /// <summary>
+    /// The map view port.
+    /// </summary>
     public class MapViewPort : IMapViewPort
     {
+
+        /// <summary>
+        /// Gets or sets the viewport center.
+        /// </summary>
         public Coordinate Center
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public bool EnforceMaximumExtents
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
+            
         }
 
         public Envelope Envelope
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double MapHeight
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
+           
         }
 
         public double MapScale
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public Envelope MaximumExtents
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double MaximumZoom
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double MinimumZoom
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double PixelAspectRatio
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double PixelHeight
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double PixelSize
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double PixelWidth
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public Size Size
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public double Zoom
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get;set;
         }
 
         public void ChangeView(Coordinate center, double zoom)

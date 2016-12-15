@@ -172,7 +172,6 @@ namespace SharpMap.Layers
         private void TileFetcherDataChanged(object sender, DataChangedEventArgs e)
         {
 
-            //OnMapNewTileAvaliable(e.TileInfo, e.Image);
             OnLayerDataLoaded();
 
             e.Layer = this;
@@ -197,7 +196,9 @@ namespace SharpMap.Layers
         /// </summary>
         public event MapNewTileAvaliabledHandler MapNewTileAvaliable;
 
-
+        /// <summary>
+        /// Event raised when data as been changed.
+        /// </summary>
         public event DataChangedEventHandler DataChanged;
 
 
@@ -208,17 +209,25 @@ namespace SharpMap.Layers
         /// <param name="map">Map which is rendered</param>
         public override void Render(Graphics graphics, IMapViewPort map)
         {
+            if (map.Size.IsEmpty || map.Size.Width <= 0 || map.Size.Height <= 0)
+            {
+                return;
+            }
+
             var bbox = map.Envelope;
             var extent = new Extent(bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY);
 
             UpdateMemoryCacheMinAndMax();
 
-            var dictionary = new Dictionary<TileIndex, Tuple<TileInfo, Stream>>();
-            var levelId = BruTile.Utilities.GetNearestLevel(_source.Schema.Resolutions, map.PixelSize);
+            var schema = _source.Schema;
 
-            GetTilesWanted(dictionary, _source.Schema, _bitmaps, _fileCache, extent, levelId);
-            var sortedFeatures = dictionary.OrderByDescending(t => _source.Schema.Resolutions[t.Key.Level].UnitsPerPixel);
+            var dictionary = new Dictionary<TileIndex, Tuple<TileInfo, Stream>>();
+            var levelId = BruTile.Utilities.GetNearestLevel(schema.Resolutions, map.PixelSize);
+
+            GetTilesWanted(dictionary, schema, _bitmaps, _fileCache, extent, levelId);
+            var sortedFeatures = dictionary.OrderByDescending(t => schema.Resolutions[t.Key.Level].UnitsPerPixel);
             var tiles = sortedFeatures.ToDictionary(pair => pair.Key, pair => pair.Value).Values.ToList();
+
 
             using (var imageAttributes = new ImageAttributes())
             {
@@ -229,14 +238,14 @@ namespace SharpMap.Layers
                 imageAttributes.SetWrapMode(WrapMode.TileFlipXY);
 #endif
 
-                if (Opacity < 1.0f)
-                {
-                    var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
-                    imageAttributes.SetColorMatrix(matrix);
-                }
-               
-                var tileWidth = _source.Schema.GetTileWidth(levelId);
-                var tileHeight = _source.Schema.GetTileHeight(levelId);
+                //if (Opacity < 1.0f)
+                //{
+                //    var matrix = new ColorMatrix { Matrix33 = Math.Max(Math.Min(1f, Opacity), 0f) };
+                //    imageAttributes.SetColorMatrix(matrix);
+                //}
+
+                var tileWidth = schema.GetTileWidth(levelId);
+                var tileHeight = schema.GetTileHeight(levelId);
 
                 foreach (var tile in tiles)
                 {
@@ -274,6 +283,9 @@ namespace SharpMap.Layers
                         }
                     }
                 }
+
+                
+
             }
 
         }
@@ -314,8 +326,14 @@ namespace SharpMap.Layers
         public override void LoadDatas(IMapViewPort view)
         {
             //AbortFetch();
+            if (view.Size.IsEmpty || view.Size.Width <= 0 || view.Size.Height <= 0)
+            {
+                return;
+            }
             var bbox = view.Envelope;
             var extent = new Extent(bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY);
+
+            
             _tileFetcher.ViewChanged(extent, view.PixelSize);
 
         }
@@ -327,10 +345,7 @@ namespace SharpMap.Layers
         /// </summary>
         public void AbortFetch()
         {
-            if (_tileFetcher != null)
-            {
-                _tileFetcher.AbortFetch();
-            }
+            _tileFetcher?.AbortFetch();
         }
 
         /// <summary>
@@ -341,6 +356,7 @@ namespace SharpMap.Layers
             AbortFetch();
             _bitmaps.Clear();
         }
+
 
         static void GetTilesWanted(IDictionary<TileIndex, Tuple<TileInfo, Stream>> resultTiles, ITileSchema schema, MemoryCache<Stream> bitmaps, FileCache cache, Extent extent, string levelId)
         {

@@ -396,7 +396,7 @@ namespace SharpMap.Layers
             var lineClipping = new CohenSutherlandLineClipping(mapEnvelope.MinX, mapEnvelope.MinY,
                 mapEnvelope.MaxX, mapEnvelope.MaxY);
 
-            FeatureDataSet ds = _dataCache;
+            var ds = _dataCache;
                       
             if (ds == null || ds.Tables.Count == 0)
             {
@@ -412,7 +412,7 @@ namespace SharpMap.Layers
             //List<System.Drawing.Rectangle> LabelBoxes; //Used for collision detection
             //Render labels
 
-            for (int i = 0; i < features.Count; i++)
+            for (var i = 0; i < features.Count; i++)
             {
                 var feature = features[i];
 
@@ -422,14 +422,14 @@ namespace SharpMap.Layers
                 else
                     style = Style;
 
-                float rotationStyle = style != null ? style.Rotation : 0f;
-                float rotationColumn = 0f;
+                var rotationStyle = style?.Rotation ?? 0f;
+                var rotationColumn = 0f;
                 if (!string.IsNullOrEmpty(RotationColumn))
                     float.TryParse(feature[RotationColumn].ToString(), NumberStyles.Any, Map.NumberFormatEnUs,
                         out rotationColumn);
-                float rotation = rotationStyle + rotationColumn;
+                var rotation = rotationStyle + rotationColumn;
 
-                int priority = Priority;
+                var priority = Priority;
                 if (_getPriorityMethod != null)
                     priority = _getPriorityMethod(feature);
                 else if (!string.IsNullOrEmpty(PriorityColumn))
@@ -437,10 +437,7 @@ namespace SharpMap.Layers
                         out priority);
 
                 string text;
-                if (_getLabelMethod != null)
-                    text = _getLabelMethod(feature);
-                else
-                    text = feature[LabelColumn].ToString();
+                text = _getLabelMethod != null ? _getLabelMethod(feature) : feature[LabelColumn].ToString();
 
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -459,14 +456,14 @@ namespace SharpMap.Layers
                         {
                             foreach (var geom in (feature.Geometry as IGeometryCollection))
                             {
-                                BaseLabel lbl = CreateLabel(feature, geom, text, rotation, priority, style, map, g, _getLocationMethod);
+                                var lbl = CreateLabel(feature, geom, text, rotation, priority, style, map, g, _getLocationMethod);
                                 if (lbl != null)
                                     labels.Add(lbl);
                             }
                         }
                         else if (MultipartGeometryBehaviour == MultipartGeometryBehaviourEnum.CommonCenter)
                         {
-                            BaseLabel lbl = CreateLabel(feature, feature.Geometry, text, rotation, priority, style, map, g, _getLocationMethod);
+                            var lbl = CreateLabel(feature, feature.Geometry, text, rotation, priority, style, map, g, _getLocationMethod);
                             if (lbl != null)
                                 labels.Add(lbl);
                         }
@@ -474,7 +471,7 @@ namespace SharpMap.Layers
                         {
                             if ((feature.Geometry as IGeometryCollection).NumGeometries > 0)
                             {
-                                BaseLabel lbl = CreateLabel(feature, (feature.Geometry as IGeometryCollection).GetGeometryN(0), text,
+                                var lbl = CreateLabel(feature, (feature.Geometry as IGeometryCollection).GetGeometryN(0), text,
                                     rotation, style, map, g);
                                 if (lbl != null)
                                     labels.Add(lbl);
@@ -512,7 +509,7 @@ namespace SharpMap.Layers
                                     }
                                 }
 
-                                BaseLabel lbl = CreateLabel(feature, coll.GetGeometryN(idxOfLargest), text, rotation, priority, style,
+                                var lbl = CreateLabel(feature, coll.GetGeometryN(idxOfLargest), text, rotation, priority, style,
                                     map, g, _getLocationMethod);
                                 if (lbl != null)
                                     labels.Add(lbl);
@@ -521,7 +518,7 @@ namespace SharpMap.Layers
                     }
                     else
                     {
-                        BaseLabel lbl = CreateLabel(feature, feature.Geometry, text, rotation, priority, style, map, g, _getLocationMethod);
+                        var lbl = CreateLabel(feature, feature.Geometry, text, rotation, priority, style, map, g, _getLocationMethod);
                         if (lbl != null)
                             labels.Add(lbl);
                     }
@@ -529,10 +526,10 @@ namespace SharpMap.Layers
             }
             if (labels.Count > 0) //We have labels to render...
             {
-                if (Style.CollisionDetection && _labelFilter != null)
-                    _labelFilter(labels);
+                if (Style.CollisionDetection)
+                    _labelFilter?.Invoke(labels);
 
-                for (int i = 0; i < labels.Count; i++)
+                for (var i = 0; i < labels.Count; i++)
                 {
                     // Don't show the label if not necessary
                     if (!labels[i].Show)
@@ -591,7 +588,7 @@ namespace SharpMap.Layers
             BaseLabel lbl = null;
             var font = style.GetFontForGraphics(g);
 
-            SizeF size = VectorRenderer.SizeOfString(g, text, font);
+            var size = VectorRenderer.SizeOfString(g, text, font);
 
             if (feature is ILineal)
             {
@@ -621,7 +618,7 @@ namespace SharpMap.Layers
                     else
                     {
                         //get centriod
-                        System.Drawing.PointF position2 = map.WorldToImage(feature.EnvelopeInternal.Centre);
+                        var position2 = map.WorldToImage(feature.EnvelopeInternal.Centre);
                         lbl = new Label(text, position2, rotation, priority, style);
                         if (size.Width < 0.95 * line.Length / map.PixelWidth || !style.IgnoreLength)
                         {
@@ -792,7 +789,7 @@ namespace SharpMap.Layers
 
             // first find the middle segment of the line
             var vertices = line.Coordinates;
-            int midPoint = (vertices.Length - 1)/2;
+            var midPoint = (vertices.Length - 1)/2;
             if (vertices.Length > 2)
             {
                 dx = vertices[midPoint + 1].X - vertices[midPoint].X;
@@ -811,7 +808,7 @@ namespace SharpMap.Layers
             else
             {
                 // calculate angle of line					
-                double angle = -Math.Atan(dy/dx) + Math.PI*0.5;
+                var angle = -Math.Atan(dy/dx) + Math.PI*0.5;
                 angle *= (180d/Math.PI); // convert radians to degrees
                 label.Rotation = (float) angle - 90; // -90 text orientation
             }
@@ -1012,9 +1009,9 @@ namespace SharpMap.Layers
         protected FeatureDataSet _dataCache;
         protected bool IsFetching;
         protected bool NeedsUpdate = true;
-        private Envelope NewEnvelope;
+        private Envelope _newEnvelope;
         private int FetchingPostponedInMilliseconds { get; set; }
-        private Timer StartFetchTimer;
+        private Timer _startFetchTimer;
 
         /// <summary>
         /// Raises the dada loaded event.
@@ -1035,7 +1032,7 @@ namespace SharpMap.Layers
         /// <param name="view"></param>
         public override void LoadDatas(IMapViewPort view)
         {
-            NewEnvelope = view.Envelope;
+            _newEnvelope = view.Envelope;
 
             if (IsFetching)
             {
@@ -1043,15 +1040,15 @@ namespace SharpMap.Layers
                 return;
             }
 
-            if (StartFetchTimer != null) StartFetchTimer.Dispose();
-            StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
+            _startFetchTimer?.Dispose();
+            _startFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
         }
 
         void StartFetchTimerElapsed(object state)
         {
-            if (NewEnvelope == null) return;
-            LoadDatas(NewEnvelope);
-            StartFetchTimer.Dispose();
+            if (_newEnvelope == null) return;
+            LoadDatas(_newEnvelope);
+            _startFetchTimer.Dispose();
         }
         /// <summary>
         /// Loads the datas.
@@ -1088,7 +1085,10 @@ namespace SharpMap.Layers
                     {
                         for (var i = 0; i < features.Count; i++)
                         {
-                            features[i].Geometry = ToTarget(features[i].Geometry);
+                            if (features[i].Geometry != null)
+                            {
+                                features[i].Geometry = ToTarget(features[i].Geometry);
+                            }
                         }
                     }
                 }
@@ -1098,12 +1098,10 @@ namespace SharpMap.Layers
 
                 OnLayerDataLoaded();
 
-                if (oldDatas != null)
-                {
-                    oldDatas.Dispose();
-                }
+                oldDatas?.Dispose();
+
                 IsFetching = false;
-                if (NeedsUpdate) LoadDatas(NewEnvelope);
+                if (NeedsUpdate) LoadDatas(_newEnvelope);
             }
             catch (InvalidOperationException ex)
             {
@@ -1126,14 +1124,14 @@ namespace SharpMap.Layers
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Clear cached datas.
+        /// </summary>
         public void ClearCache()
         {
             var oldDatas = _dataCache;
             _dataCache = null;
-            if (oldDatas != null)
-            {
-                oldDatas.Dispose();
-            }
+            oldDatas?.Dispose();
         }
 
         #endregion

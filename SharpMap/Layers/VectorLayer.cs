@@ -750,7 +750,10 @@ namespace SharpMap.Layers
                     {
                         for (var i = 0; i < features.Count; i++)
                         {
-                            features[i].Geometry = ToTarget(features[i].Geometry);
+                            if (features[i].Geometry != null)
+                            {
+                                features[i].Geometry = ToTarget(features[i].Geometry);
+                            }
                         }
                     }
                 }
@@ -760,10 +763,8 @@ namespace SharpMap.Layers
 
                 OnLayerDataLoaded();
 
-                if (oldDatas != null)
-                {
-                    oldDatas.Dispose();
-                }
+                oldDatas?.Dispose();
+
                 IsFetching = false;
                 if (NeedsUpdate) LoadDatas(NewEnvelope);
             }

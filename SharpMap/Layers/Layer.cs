@@ -78,8 +78,7 @@ namespace SharpMap.Layers
         {
             _sourceFactory = GeoAPI.GeometryServiceProvider.Instance.CreateGeometryFactory(SRID);
 
-            if (SRIDChanged != null)
-                SRIDChanged(this, eventArgs);
+            SRIDChanged?.Invoke(this, eventArgs);
         }
 
         /// <summary>
@@ -93,8 +92,7 @@ namespace SharpMap.Layers
         /// <param name="eventArgs">The arguments associated with the event</param>
         protected virtual void OnStyleChanged(EventArgs eventArgs)
         {
-            if (StyleChanged != null)
-                StyleChanged(this, eventArgs);
+            StyleChanged?.Invoke(this, eventArgs);
         }
         
         /// <summary>
@@ -108,8 +106,7 @@ namespace SharpMap.Layers
         /// <param name="eventArgs">The arguments associated with the event</param>
         protected virtual void OnLayerNameChanged(EventArgs eventArgs)
         {
-            if (LayerNameChanged != null)
-                LayerNameChanged(this, eventArgs);
+            LayerNameChanged?.Invoke(this, eventArgs);
         }
 
         #endregion
@@ -314,8 +311,7 @@ namespace SharpMap.Layers
         /// </summary>
         protected virtual void OnLayerDataLoaded()
         {
-            if (LayerDataLoaded != null)
-                LayerDataLoaded(this);
+            LayerDataLoaded?.Invoke(this);
         }
 
         #endregion
@@ -447,8 +443,9 @@ namespace SharpMap.Layers
         protected virtual Envelope ToTarget(Envelope envelope, ICoordinateTransformation coordinateTransformation)
         {
             if (coordinateTransformation == null)
+            {
                 return envelope;
-
+            }
 #if !DotSpatialProjections
             return GeometryTransform.TransformBox(envelope, coordinateTransformation.MathTransform);
 #else
@@ -503,6 +500,7 @@ namespace SharpMap.Layers
         /// <returns>The target Geometry.</returns>
         protected virtual IGeometry ToTarget(IGeometry geometry)
         {
+            
             if (geometry.SRID == TargetSRID)
                 return geometry;
 
@@ -525,6 +523,8 @@ namespace SharpMap.Layers
         /// <returns></returns>
         protected virtual IGeometry ToSource(IGeometry geometry)
         {
+            
+
             if (geometry.SRID == SRID)
                 return geometry;
 
