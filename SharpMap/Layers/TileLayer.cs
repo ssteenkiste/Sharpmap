@@ -138,7 +138,7 @@ namespace SharpMap.Layers
             LayerName = layerName;
             _transparentColor = transparentColor;
             _showErrorInTile = showErrorInTile;
-            
+            Opacity = 1.0f;
             if (!string.IsNullOrEmpty(fileCacheDir))
             {
                 _fileCache = new FileCache(fileCacheDir, "png");
@@ -157,6 +157,7 @@ namespace SharpMap.Layers
         /// <param name="imgFormat">Set the format of the tiles to be used</param>
         public TileLayer(ITileSource tileSource, string layerName, Color transparentColor, bool showErrorInTile, FileCache fileCache, ImageFormat imgFormat)
         {
+            Opacity = 1.0f;
 
             _source = tileSource;
             LayerName = layerName;
