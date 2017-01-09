@@ -387,7 +387,7 @@ namespace SharpMap
             }
             else
             {
-                tileAsyncLayer.MapNewTileAvaliable += MapNewTileAvaliableHandler;
+                //tileAsyncLayer.MapNewTileAvaliable += MapNewTileAvaliableHandler;
             }
         }
 
@@ -395,7 +395,7 @@ namespace SharpMap
         {
 
             tileAsyncLayer.DownloadProgressChanged -= layer_DownloadProgressChanged;
-            tileAsyncLayer.MapNewTileAvaliable -= MapNewTileAvaliableHandler;
+            //tileAsyncLayer.MapNewTileAvaliable -= MapNewTileAvaliableHandler;
         }
 
         private void WireAsyncEvents(IAsyncDataFetcher asyncLayer)
@@ -410,8 +410,7 @@ namespace SharpMap
 
         private void AsyncLayer_DataChanged(object sender, DataChangedEventArgs e)
         {
-            if (DataChanged != null)
-                DataChanged(this, e);
+            DataChanged?.Invoke(this, e);
         }
 
         /// <summary>
@@ -643,22 +642,6 @@ namespace SharpMap
 
         #endregion
 
-        //ToDo: fill in the blanks
-        /// <summary>
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="bbox"></param>
-        /// <param name="bm"></param>
-        /// <param name="sourceWidth"></param>
-        /// <param name="sourceHeight"></param>
-        /// <param name="imageAttributes"></param>
-        public void MapNewTileAvaliableHandler(ITileAsyncLayer sender, Envelope bbox, byte[] bm, int sourceWidth, int sourceHeight, ImageAttributes imageAttributes)
-        {
-            var e = MapNewTileAvaliable;
-            if (e != null)
-                e(sender, bbox, bm, sourceWidth, sourceHeight, imageAttributes);
-        }
-
 
         /// <summary>
         /// Fires the RefreshNeeded event.
@@ -680,7 +663,6 @@ namespace SharpMap
         /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
         public void RenderMap(Graphics g)
         {
-            OnMapRendering(g);
 
             if (g == null)
                 throw new ArgumentNullException(nameof(g), "Cannot render map with null graphics object!");
@@ -688,6 +670,14 @@ namespace SharpMap
 
             if ((Layers == null || Layers.Count == 0) && (BackgroundLayer == null || BackgroundLayer.Count == 0))
                 throw new InvalidOperationException("No layers to render");
+
+
+            if (Size.IsEmpty)
+            {
+                return;
+            }
+
+            OnMapRendering(g);
 
             g.Transform = MapTransform;
             g.Clear(BackColor);
@@ -714,10 +704,11 @@ namespace SharpMap
                 }
             }
 
+            //mask.
             if (BackgroundMaskOpacity > 0)
             {
 
-                var opacity = (int) (BackgroundMaskOpacity*255);
+                var opacity = (int) (BackgroundMaskOpacity*  255);
                 if (opacity > 255)
                 {
                     opacity = 255;
@@ -726,6 +717,7 @@ namespace SharpMap
                 g.FillRectangle(new SolidBrush(Color.FromArgb(opacity, BackColor.R, BackColor.G, BackColor.B)), g.ClipBounds);
             }
 
+            //Layers drawing
             if (_layers != null && _layers.Count > 0)
             {
                 layerList = _layers.ToList();
@@ -749,10 +741,10 @@ namespace SharpMap
             }
 
             // Render all map decorations
-            //foreach (var mapDecoration in _decorations)
-            //{
-            //    mapDecoration.Render(g, this);
-            //}
+            foreach (var mapDecoration in _decorations)
+            {
+                mapDecoration.Render(g, this);
+            }
 
             OnMapRendered(g);
         }
@@ -764,7 +756,7 @@ namespace SharpMap
         protected virtual void OnMapRendering(Graphics g)
         {
             var e = MapRendering;
-            if (e != null) e(g);
+            e?.Invoke(g);
         }
 
         /// <summary>
@@ -774,7 +766,7 @@ namespace SharpMap
         protected virtual void OnMapRendered(Graphics g)
         {
             var e = MapRendered;
-            if (e != null) e(g); //Fire render event
+            e?.Invoke(g); //Fire render event
         }
 
         /// <summary>
@@ -786,7 +778,7 @@ namespace SharpMap
         protected virtual void OnLayerRendering(ILayer layer, LayerCollectionType layerCollectionType)
         {
             var e = LayerRendering;
-            if (e != null) e(this, new LayerRenderingEventArgs(layer, layerCollectionType));
+            e?.Invoke(this, new LayerRenderingEventArgs(layer, layerCollectionType));
         }
 
 #pragma warning disable 612,618
@@ -800,91 +792,9 @@ namespace SharpMap
         {
             var e = LayerRendered;
 #pragma warning restore 612,618
-            if (e != null)
-            {
-                e(this, EventArgs.Empty);
-            }
+            e?.Invoke(this, EventArgs.Empty);
 
-            var eex = LayerRenderedEx;
-            if (eex != null)
-            {
-                eex(this, new LayerRenderingEventArgs(layer, layerCollectionType));
-            }
-        }
-
-        /// <summary>
-        /// Renders the map using the provided <see cref="Graphics"/> object.
-        /// </summary>
-        /// <param name="g">the <see cref="Graphics"/> object to use</param>
-        /// <param name="layerCollectionType">the <see cref="LayerCollectionType"/> to use</param>
-        /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
-        /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
-        public void RenderMap(Graphics g, LayerCollectionType layerCollectionType)
-        {
-            RenderMap(g, layerCollectionType, true, false);
-        }
-
-        /// <summary>
-        /// Renders the map using the provided <see cref="Graphics"/> object.
-        /// </summary>
-        /// <param name="g">the <see cref="Graphics"/> object to use</param>
-        /// <param name="layerCollectionType">the <see cref="LayerCollectionType"/> to use</param>
-        /// <param name="drawMapDecorations">Set whether to draw map decorations on the map (if such are set)</param>
-        /// <param name="drawTransparent">Set wether to draw with transparent background or with BackColor as background</param>
-        /// <exception cref="ArgumentNullException">if <see cref="Graphics"/> object is null.</exception>
-        /// <exception cref="InvalidOperationException">if there are no layers to render.</exception>
-        public void RenderMap(Graphics g, LayerCollectionType layerCollectionType, bool drawMapDecorations, bool drawTransparent)
-        {
-            if (g == null)
-                throw new ArgumentNullException("g", "Cannot render map with null graphics object!");
-
-            LayerCollection lc = null;
-            switch (layerCollectionType)
-            {
-                case LayerCollectionType.Static:
-                    lc = Layers;
-                    break;
-                case LayerCollectionType.Background:
-                    lc = BackgroundLayer;
-                    break;
-            }
-
-            if (lc == null || lc.Count == 0)
-                throw new InvalidOperationException("No layers to render");
-
-            var transform = g.Transform;
-            var newTransform = MapTransform.Clone();
-            lock (MapTransform)
-            {
-                g.Transform = newTransform;
-            }
-            if (!drawTransparent)
-            {
-                g.Clear(BackColor);
-            }
-
-            g.PageUnit = GraphicsUnit.Pixel;
-
-            foreach (var layer in lc)
-            {
-                if (layer.IsLayerVisible(this))
-                {
-                    LayerCollectionRenderer.RenderLayer(layer, g, this);
-                }
-            }
-
-            if (layerCollectionType == LayerCollectionType.Static)
-            {
-                if (drawMapDecorations)
-                {
-                    foreach (var mapDecoration in Decorations)
-                    {
-                        mapDecoration.Render(g, this);
-                    }
-                }
-            }
-
-            g.Transform = transform;
+            LayerRenderedEx?.Invoke(this, new LayerRenderingEventArgs(layer, layerCollectionType));
         }
 
         #endregion
@@ -1052,7 +962,7 @@ namespace SharpMap
 
         #region Properties
 
-        // <summary>
+        /// <summary>
         /// Gets or sets the unique identifier of the map.
         /// </summary>
         public Guid ID

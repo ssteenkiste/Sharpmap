@@ -95,6 +95,8 @@ namespace SharpMap
             throw new NotImplementedException();
         }
 
+        #region Transformation
+
         public Point ImageToWorld(PointF p)
         {
             throw new NotImplementedException();
@@ -124,5 +126,6 @@ namespace SharpMap
         {
             throw new NotImplementedException();
         }
+        #endregion
     }
 }

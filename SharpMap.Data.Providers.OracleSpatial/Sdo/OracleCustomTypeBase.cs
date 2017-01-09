@@ -2,7 +2,7 @@ using System;
 using Oracle.DataAccess.Types;
 using Oracle.DataAccess.Client;
 
-namespace SharpMap.Data.Providers.OracleUDT
+namespace SharpMap.Data.Providers.OracleSpatial.Sdo
 {   
     [Serializable]
     public abstract class OracleCustomTypeBase<T> : INullable, IOracleCustomType, IOracleCustomTypeFactory

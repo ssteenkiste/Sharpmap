@@ -39,7 +39,7 @@ namespace SharpMap.Layers
         /// <summary>
         /// Gets or Sets what level-reference the Min/Max values are defined in
         /// </summary>
-        Styles.VisibilityUnits VisibilityUnits { get; set; }
+        VisibilityUnits VisibilityUnits { get; set; }
 
         /// <summary>
         /// Specifies whether this layer should be rendered or not
@@ -98,6 +98,11 @@ namespace SharpMap.Layers
         /// <returns></returns>
         public static bool IsLayerVisible(this ILayer layer, IMapViewPort view)
         {
+            if (layer == null || view == null)
+            {
+                return false;
+            }
+
             if (!layer.Enabled)
             {
                 return false;

@@ -26,9 +26,24 @@ namespace SharpMap
         /// <returns></returns>
         double MapHeight { get; }
 
+        /// <summary>
+        /// Gets the pixel width.
+        /// </summary>
         double PixelWidth { get; }
+
+        /// <summary>
+        /// Gets the pixel size.
+        /// </summary>
         double PixelSize { get; }
+
+        /// <summary>
+        /// Gets the pixel height.
+        /// </summary>
         double PixelHeight { get; }
+
+        /// <summary>
+        /// Gets the pixel aspect ratio.
+        /// </summary>
         double PixelAspectRatio { get; }
 
         /// <summary>

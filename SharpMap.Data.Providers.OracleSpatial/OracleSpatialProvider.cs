@@ -20,7 +20,8 @@
 
 using GeoAPI.Geometries;
 using Oracle.DataAccess.Client;
-using SharpMap.Data.Providers.OracleUDT;
+using SharpMap.Data.Providers.OracleSpatial;
+using SharpMap.Data.Providers.OracleSpatial.Sdo;
 using System;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -54,7 +55,7 @@ namespace SharpMap.Data.Providers
     /// </example>
     /// </remarks>
     [Serializable]
-    public class OracleSpatial : BaseProvider
+    public class OracleSpatialProvider : BaseProvider
     {
         private string _definitionQuery;
         private string _orderQuery;
@@ -69,7 +70,7 @@ namespace SharpMap.Data.Providers
         /// <param name="tablename">Name of data table</param>
         /// <param name="geometryColumnName">Name of geometry column</param>
         /// /// <param name="oidColumnName">Name of column with unique identifier</param>
-        public OracleSpatial(string connectionStr, string tablename, string geometryColumnName, string oidColumnName)
+        public OracleSpatialProvider(string connectionStr, string tablename, string geometryColumnName, string oidColumnName)
             : base(-2)
         {
             ConnectionString = connectionStr;
@@ -87,7 +88,7 @@ namespace SharpMap.Data.Providers
         /// <param name="tablename">Tablename</param>
         /// <param name="geometryColumnName">Geometry column name</param>
         /// <param name="oidColumnName">Object ID column</param>
-        public OracleSpatial(string username, string password, string datasource, string tablename, string geometryColumnName,
+        public OracleSpatialProvider(string username, string password, string datasource, string tablename, string geometryColumnName,
                       string oidColumnName)
             : this(
                 "User Id=" + username + ";Password=" + password + ";Data Source=" + datasource, tablename,
@@ -102,7 +103,7 @@ namespace SharpMap.Data.Providers
         /// <param name="connectionStr">Connectionstring</param>
         /// <param name="tablename">Name of data table</param>
         /// <param name="oidColumnName">Name of column with unique identifier</param>
-        public OracleSpatial(string connectionStr, string tablename, string oidColumnName)
+        public OracleSpatialProvider(string connectionStr, string tablename, string oidColumnName)
             : this(connectionStr, tablename, "", oidColumnName)
         {
             GeometryColumn = GetGeometryColumn();
@@ -203,7 +204,10 @@ namespace SharpMap.Data.Providers
                             {
                                 var geom = dr[0] as SdoGeometry;
                                 if (geom != null)
-                                    features.Add(geom.AsGeometry());
+                                {
+                                    
+                                    features.Add(geom.AsGeometry(Factory));
+                                }
                             }
                         }
                     }
@@ -236,7 +240,7 @@ namespace SharpMap.Data.Providers
                             {
                                 var sdoGeom = dr[0] as SdoGeometry;
                                 if (sdoGeom != null)
-                                    geom = sdoGeom.AsGeometry();
+                                    geom = sdoGeom.AsGeometry(Factory);
                             }
                         }
                     }
@@ -344,7 +348,7 @@ namespace SharpMap.Data.Providers
 
                                 if (sdoGeometry != null)
                                 {
-                                    fdr.Geometry = sdoGeometry.AsGeometry();
+                                    fdr.Geometry = sdoGeometry.AsGeometry(Factory);
                                 }
 
                                 fdt.AddRow(fdr);
@@ -409,7 +413,7 @@ namespace SharpMap.Data.Providers
 
                             var sdoGeom = fdr[GeometryColumn] as SdoGeometry;
                             if (sdoGeom != null)
-                                fdr.Geometry = sdoGeom.AsGeometry();
+                                fdr.Geometry = sdoGeom.AsGeometry(Factory);
                             return fdr;
                         }
 
@@ -442,7 +446,7 @@ namespace SharpMap.Data.Providers
                     if (result == null || result == DBNull.Value || !(result is SdoGeometry))
                         return null;
 
-                    var geom = (result as SdoGeometry).AsGeometry();
+                    var geom = (result as SdoGeometry).AsGeometry(Factory);
                     return geom.EnvelopeInternal;
                 }
             }
@@ -494,7 +498,7 @@ namespace SharpMap.Data.Providers
 
                             var sdoGeom = dr[GeometryColumn] as SdoGeometry;
                             if (sdoGeom != null)
-                                fdr.Geometry = sdoGeom.AsGeometry();
+                                fdr.Geometry = sdoGeom.AsGeometry(Factory);
 
                             fdt.AddRow(fdr);
                         }

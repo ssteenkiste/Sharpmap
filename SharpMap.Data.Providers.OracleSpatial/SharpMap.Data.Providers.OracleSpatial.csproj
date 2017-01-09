@@ -73,11 +73,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Oracle.UDT\OracleArrayTypeFactory.cs" />
-    <Compile Include="Oracle.UDT\OracleCustomTypeBase.cs" />
-    <Compile Include="Oracle.UDT\sdogeometry.cs" />
-    <Compile Include="Oracle.UDT\SDOPOINT.cs" />
-    <Compile Include="OracleSpatial.cs" />
+    <Compile Include="GeometryExtensions.cs" />
+    <Compile Include="Sdo\OracleArrayTypeFactory.cs" />
+    <Compile Include="Sdo\OracleCustomTypeBase.cs" />
+    <Compile Include="Sdo\SdoEType.cs" />
+    <Compile Include="Sdo\SdoGeometry.cs" />
+    <Compile Include="Sdo\SdoGTemplate.cs" />
+    <Compile Include="Sdo\SdoPoint.cs" />
+    <Compile Include="OracleGeometryReader.cs" />
+    <Compile Include="OracleSpatialProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

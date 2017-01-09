@@ -4,16 +4,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Threading;
 using BruTile;
 using BruTile.Cache;
 using System.IO;
 using GeoAPI.Geometries;
-using System.Threading.Tasks;
 using Common.Logging;
 using SharpMap.Fetching;
 using System.ComponentModel;
-using System.Globalization;
 
 namespace SharpMap.Layers
 {
@@ -23,14 +20,9 @@ namespace SharpMap.Layers
     [Serializable]
     public class TileAsyncLayer : TileLayer, ITileAsyncLayer, IAsyncDataFetcher
     {
-        class DownloadTask
-        {
-            public CancellationTokenSource CancellationToken;
-            public Task Task;
-        }
+        
 
         static readonly ILog Logger = LogManager.GetLogger(typeof(TileAsyncLayer));
-        private readonly List<DownloadTask> _currentTasks = new List<DownloadTask>();
         private TileFetcher _tileFetcher;
         private readonly int _maxRetries = TileFetcher.DEFAULT_MAX_ATTEMPTS;
         private readonly int _maxThreads = TileFetcher.DEFAULT_MAX_THREADS;
@@ -175,10 +167,7 @@ namespace SharpMap.Layers
             OnLayerDataLoaded();
 
             e.Layer = this;
-            if (DataChanged != null)
-            {
-                DataChanged(this, e);
-            }
+            DataChanged?.Invoke(this, e);
         }
 
         private void UpdateMemoryCacheMinAndMax()

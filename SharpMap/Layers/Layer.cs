@@ -126,7 +126,7 @@ namespace SharpMap.Layers
         /// Creates an instance of this class using the given Style
         ///</summary>
         ///<param name="style"></param>
-        public Layer(Style style)
+        protected Layer(IStyle style)
         {
             _style = style;
         }
@@ -195,19 +195,18 @@ namespace SharpMap.Layers
                 TargetSRID = Convert.ToInt32(CoordinateTransformation.TargetCS.AuthorityCode);
             }
 #endif
-            if (CoordinateTransformationChanged != null)
-                CoordinateTransformationChanged(this, e);
+            CoordinateTransformationChanged?.Invoke(this, e);
         }
 
         /// <summary>
         /// Gets the geometry factory to create source geometries
         /// </summary>
-        protected internal IGeometryFactory SourceFactory { get { return _sourceFactory ?? (_sourceFactory = GeoAPI.GeometryServiceProvider.Instance.CreateGeometryFactory(SRID)); } }
+        protected internal IGeometryFactory SourceFactory => _sourceFactory ?? (_sourceFactory = GeoAPI.GeometryServiceProvider.Instance.CreateGeometryFactory(SRID));
 
         /// <summary>
         /// Gets the geometry factory to create target geometries
         /// </summary>
-        protected internal IGeometryFactory TargetFactory { get { return _targetFactory ?? _sourceFactory; } }
+        protected internal IGeometryFactory TargetFactory => _targetFactory ?? _sourceFactory;
 
 #if !DotSpatialProjections
         /// <summary>

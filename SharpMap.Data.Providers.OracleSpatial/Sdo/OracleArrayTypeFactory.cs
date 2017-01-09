@@ -1,7 +1,7 @@
 using Oracle.DataAccess.Types;
 using System;
 
-namespace SharpMap.Data.Providers.OracleUDT
+namespace SharpMap.Data.Providers.OracleSpatial.Sdo
 {
     public abstract class OracleArrayTypeFactoryBase<T> : IOracleArrayTypeFactory
     {

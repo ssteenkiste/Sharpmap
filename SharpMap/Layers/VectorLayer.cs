@@ -16,7 +16,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
-using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 //#if !DotSpatialProjections
@@ -32,7 +31,6 @@ using SharpMap.Rendering;
 using SharpMap.Rendering.Thematics;
 using SharpMap.Styles;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -204,8 +202,7 @@ namespace SharpMap.Layers
         protected override void ReleaseManagedResources()
         {
             ClearCache();
-            if (DataSource != null)
-                DataSource.Dispose();
+            DataSource?.Dispose();
             base.ReleaseManagedResources();
         }
 
@@ -649,10 +646,7 @@ namespace SharpMap.Layers
         /// </summary>
         protected override void OnLayerDataLoaded()
         {
-            if (DataChanged != null)
-            {
-                DataChanged(this, new DataChangedEventArgs(null, false, LayerName, this));
-            }
+            DataChanged?.Invoke(this, new DataChangedEventArgs(null, false, LayerName, this));
             base.OnLayerDataLoaded();
         }
 
@@ -686,7 +680,7 @@ namespace SharpMap.Layers
                 return;
             }
 
-            if (StartFetchTimer != null) StartFetchTimer.Dispose();
+            StartFetchTimer?.Dispose();
             StartFetchTimer = new Timer(StartFetchTimerElapsed, null, FetchingPostponedInMilliseconds, int.MaxValue);
         }
 
@@ -702,10 +696,7 @@ namespace SharpMap.Layers
         {
             var oldDatas = _dataCache;
             _dataCache = null;
-            if (oldDatas != null)
-            {
-                oldDatas.Dispose();
-            }
+            oldDatas?.Dispose();
         }
 
         void StartFetchTimerElapsed(object state)
