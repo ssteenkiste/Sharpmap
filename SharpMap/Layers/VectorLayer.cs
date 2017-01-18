@@ -164,7 +164,7 @@ namespace SharpMap.Layers
                 Envelope box;
                 lock (_dataSource)
                 {
-                    bool wasOpen = DataSource.IsOpen;
+                    var wasOpen = DataSource.IsOpen;
                     if (!wasOpen)
                         DataSource.Open();
                     box = DataSource.GetExtents();
@@ -238,11 +238,7 @@ namespace SharpMap.Layers
             base.Render(g, map);
         }
 
-        public override void CleanupRendering()
-        {
-            base.CleanupRendering();
-        }
-
+      
         /// <summary>
         /// Method to render this layer to the map, applying <paramref name="theme"/>.
         /// </summary>
@@ -254,7 +250,7 @@ namespace SharpMap.Layers
         {
             var useCache = _dataCache != null;
 
-            FeatureDataSet ds = _dataCache;
+            var ds = _dataCache;
 
             if (ds == null || ds.Tables.Count == 0)
             {
@@ -264,7 +260,6 @@ namespace SharpMap.Layers
 
             foreach (var features in ds.Tables)
             {
-
 
                 //Linestring outlines is drawn by drawing the layer once with a thicker line
                 //before drawing the "inline" on top.
@@ -296,7 +291,6 @@ namespace SharpMap.Layers
                         }
                     }
                 }
-
 
                 for (var i = 0; i < features.Count; i++)
                 {

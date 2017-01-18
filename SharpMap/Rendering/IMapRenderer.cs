@@ -30,14 +30,19 @@ namespace SharpMap.Rendering
         /// </summary>
         event EventHandler<LayerRenderingEventArgs> LayerRendered;
 
-        
+        /// <summary>
+        /// Gets or sets the map.
+        /// </summary>
+        Map Map { get; set; }
+    
 
         /// <summary>
-        /// Renders map layers.
+        /// Renders the map.
         /// </summary>
-        /// <param name="map">The map.</param>
-        /// <param name="layers">The layers to render.</param>
-        void Render(IMapViewPort map, IEnumerable<ILayer> layers);
+        /// <param name="context">The rendering context.</param>
+        /// <param name="map">The map view port.</param>
+        void Render(object context, IMapViewPort map);
+
 
     }
 }

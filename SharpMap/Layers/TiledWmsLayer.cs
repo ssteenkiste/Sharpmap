@@ -58,7 +58,7 @@ namespace SharpMap.Layers
 
     public class TiledWmsLayer : Layer, ILayer
     {
-        ILog logger = LogManager.GetLogger(typeof(TiledWmsLayer));
+        readonly ILog _logger = LogManager.GetLogger(typeof(TiledWmsLayer));
 
         #region Fields
 
@@ -127,14 +127,14 @@ namespace SharpMap.Layers
 
             if (!Web.HttpCacheUtility.TryGetValue("SharpMap_WmsClient_" + url, out _WmsClient))
             {
-                if (logger.IsDebugEnabled)
-                    logger.Debug("Creating new client for url " + url);
+                if (_logger.IsDebugEnabled)
+                    _logger.Debug("Creating new client for url " + url);
                 _WmsClient = new Client(url, _Proxy, _Credentials);
 
                 if (!Web.HttpCacheUtility.TryAddValue("SharpMap_WmsClient_" + url, _WmsClient))
                 {
-                    if (logger.IsDebugEnabled)
-                        logger.Debug("Adding client to Cache for url " + url + " failed");
+                    if (_logger.IsDebugEnabled)
+                        _logger.Debug("Adding client to Cache for url " + url + " failed");
                 }
             }
             _TileSets = TileSet.ParseVendorSpecificCapabilitiesNode(_WmsClient.VendorSpecificCapabilities);
@@ -229,8 +229,8 @@ namespace SharpMap.Layers
 
                     var tileExtents = TileExtents.GetTileExtents(tileSet, map.Envelope, map.PixelSize);
 
-                    if (logger.IsDebugEnabled)
-                        logger.DebugFormat("TileCount: {0}", tileExtents.Count);
+                    if (_logger.IsDebugEnabled)
+                        _logger.DebugFormat("TileCount: {0}", tileExtents.Count);
 
                     //TODO: Retrieve several tiles at the same time asynchronously to improve performance. PDD.
                     foreach (var tileExtent in tileExtents)

@@ -261,7 +261,9 @@ namespace SharpMap.Layers
             }
         }
 
-
+        /// <summary>
+        /// Cleanup the rendering.
+        /// </summary>
         public virtual void CleanupRendering()
         {
         }
@@ -282,8 +284,7 @@ namespace SharpMap.Layers
         /// <param name="g">The graphics object</param>
         protected virtual void OnLayerRendered(Graphics g)
         {
-            if (LayerRendered != null)
-                LayerRendered(this, g);
+            LayerRendered?.Invoke(this, g);
         }
 
         /// <summary>

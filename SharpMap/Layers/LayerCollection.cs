@@ -203,7 +203,7 @@ namespace SharpMap.Layers
         protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
             var handler = CollectionChanged;
-            if (handler != null) handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         protected override void InsertItem(int index, ILayer item)

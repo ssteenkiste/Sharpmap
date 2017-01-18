@@ -18,17 +18,16 @@
 // along with SharpMap; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
-using GeoAPI.Geometries;
-using Oracle.DataAccess.Client;
-using SharpMap.Data.Providers.OracleSpatial;
-using SharpMap.Data.Providers.OracleSpatial.Sdo;
 using System;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Globalization;
+using GeoAPI.Geometries;
+using Oracle.DataAccess.Client;
+using SharpMap.Data.Providers.OracleSpatial.Sdo;
 using Geometry = GeoAPI.Geometries.IGeometry;
 
-namespace SharpMap.Data.Providers
+namespace SharpMap.Data.Providers.OracleSpatial
 {
     /// <summary>
     /// Oracle Spatial Data Provider

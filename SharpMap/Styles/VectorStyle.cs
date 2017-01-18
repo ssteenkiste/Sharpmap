@@ -74,7 +74,7 @@ namespace SharpMap.Styles
                     if (_pointBrush != null)
                         vs._pointBrush = _pointBrush.Clone() as Brush;
 
-                    vs._symbol = (_symbol != null ? _symbol.Clone() as Image : null);
+                    vs._symbol = _symbol?.Clone() as Image;
                     vs._symbolRotation = _symbolRotation;
                     vs._symbolScale = _symbolScale;
                     vs.PointSymbolizer = PointSymbolizer;

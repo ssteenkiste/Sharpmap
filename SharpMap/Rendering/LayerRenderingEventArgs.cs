@@ -22,6 +22,15 @@ namespace SharpMap.Rendering
         /// Creates an instance of this class
         /// </summary>
         /// <param name="layer">The layer that is being or has been rendered</param>
+        public LayerRenderingEventArgs(ILayer layer)
+        {
+            Layer = layer;
+        }
+
+        /// <summary>
+        /// Creates an instance of this class
+        /// </summary>
+        /// <param name="layer">The layer that is being or has been rendered</param>
         /// <param name="layerCollectionType">The layer collection type the layer belongs to.</param>
         public LayerRenderingEventArgs(ILayer layer, LayerCollectionType layerCollectionType)
         {

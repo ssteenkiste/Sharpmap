@@ -98,16 +98,16 @@ namespace SharpMap.Data.Providers.OracleSpatial
                 // Single Coordinate Type Optimization
                 Debug.Assert(point.X != null, "point.X != null");
                 Debug.Assert(point.Y != null, "point.Y != null");
-                if (dim == 2)
-                {
+                //if (dim == 2)
+                //{
                     coords = Coordinates(dim, lrs, geomTemplate, new[] { point.X.Value, point.Y.Value });
-                }
-                else
-                {
-                    Debug.Assert(point.Z != null, "point.Z != null");
-                    coords = Coordinates(dim, lrs, geomTemplate,
-                                         new[] { point.X.Value, point.Y.Value, point.Z.Value });
-                }
+                //}
+                //else
+                //{
+                //    Debug.Assert(point.Z != null, "point.Z != null");
+                //    coords = Coordinates(dim, lrs, geomTemplate,
+                //                         new[] { point.X.Value, point.Y.Value, point.Z.Value });
+                //}
                 elemInfo = new decimal[] { 1, (Int32)SdoEType.Coordinate, 1 };
             }
             else
@@ -143,7 +143,7 @@ namespace SharpMap.Data.Providers.OracleSpatial
             }
         }
 
-        private static List<Coordinate> Coordinates(int dim, int lrs, int gtemplate, Decimal[] ordinates)
+        private static List<Coordinate> Coordinates(int dim, int lrs, int gtemplate, decimal[] ordinates)
         {
             if ((ordinates == null) || (ordinates.Length == 0))
             {
@@ -157,8 +157,7 @@ namespace SharpMap.Data.Providers.OracleSpatial
             {
                 var pt = new List<Coordinate>(1)
                              {
-                                 new Coordinate((Double) ordinates[0], (Double) ordinates[1],
-                                                (double) ordinates[2])
+                                 new Coordinate((double) ordinates[0], (double) ordinates[1],(double) ordinates[2])
                              };
                 return pt;
             }

@@ -85,45 +85,7 @@ namespace SharpMap
                 }
             }
 
-            // The following code did not seem to work in all cases.
-            /*
-            if (LicenseManager.UsageMode != LicenseUsageMode.Designtime)
-            {
-                _logger.Debug("In design mode");
-                Trace.WriteLine("In design mode");
-                // We have to do this initialization with reflection due to the fact that NTS can reference an older version of GeoAPI and redirection 
-                // is not available at design time..
-                var ntsAssembly = Assembly.Load("NetTopologySuite");
-                _logger.Debug("Loaded NetTopologySuite");
-                Trace.WriteLine("Loaded NetTopologySuite");
-                try
-                {
-                    _logger.Debug("Trying to access GeoAPI.GeometryServiceProvider.Instance");
-                    Trace.WriteLine("Trying to access GeoAPI.GeometryServiceProvider.Instance");
-                    if (GeoAPI.GeometryServiceProvider.Instance == null)
-                    {
-                        _logger.Debug("Returned null, setting it to default");
-                        Trace.WriteLine("Returned null, setting it to default");
-                        var ntsApiGeometryServices = ntsAssembly.GetType("NetTopologySuite.NtsGeometryServices");
-                        GeoAPI.GeometryServiceProvider.Instance =
-                            ntsApiGeometryServices.GetProperty("Instance").GetValue(null, null) as
-                                GeoAPI.IGeometryServices;
-                    }
-                }
-
-                catch (InvalidOperationException)
-                {
-                    _logger.Debug("InvalidOperationException thrown, setting it to default");
-                    Trace.WriteLine("InvalidOperationException thrown, setting it to default");
-                    var ntsApiGeometryServices = ntsAssembly.GetType("NetTopologySuite.NtsGeometryServices");
-                    GeoAPI.GeometryServiceProvider.Instance =
-                        ntsApiGeometryServices.GetProperty("Instance").GetValue(null, null) as
-                            GeoAPI.IGeometryServices;
-                }
-                _logger.Debug("Exiting design mode handling");
-                Trace.WriteLine("Exiting design mode handling");
-            }
-            */
+            
         }
 
         static readonly ILog _logger = LogManager.GetLogger(typeof(Map));
@@ -557,7 +519,7 @@ namespace SharpMap
         #region Methods
 
         #region Map output
-
+        /*
         /// <summary>
         /// Renders the map to an image
         /// </summary>
@@ -639,7 +601,7 @@ namespace SharpMap
             }
             return metafile;
         }
-
+        */
         #endregion
 
 
@@ -652,7 +614,7 @@ namespace SharpMap
             RefreshNeeded?.Invoke(this, e);
         }
 
-
+        /*
         #region Rendering
 
         /// <summary>
@@ -798,6 +760,7 @@ namespace SharpMap
         }
 
         #endregion
+        */
 
         #region Layer
         /// <summary>
@@ -1069,6 +1032,8 @@ namespace SharpMap
             set
             {
                 _backgroundColor = value;
+                SetBackgroundBrush();
+
                 OnMapViewChanged();
             }
         }
@@ -1078,9 +1043,31 @@ namespace SharpMap
         public float BackgroundMaskOpacity
         {
             get { return _backgroundMaskOpacity; }
-            set { _backgroundMaskOpacity = value; OnMapViewChanged(); }
+            set
+            {
+                if (value < 0) value = 0;
+                if (value > 1) value = 1;
+
+                if (_backgroundMaskOpacity != value)
+                {
+                    _backgroundMaskOpacity = value;
+                    SetBackgroundBrush();
+                }
+                OnMapViewChanged();
+            }
 
         }
+
+        private void SetBackgroundBrush()
+        {
+            var opacity = (int)(_backgroundMaskOpacity * 255);
+            var oldBrush = BackgroundMaskBrush;
+            BackgroundMaskBrush = BackColor.IsEmpty ? null : new SolidBrush(Color.FromArgb(opacity, BackColor.R, BackColor.G, BackColor.B));
+            oldBrush?.Dispose();
+
+        }
+
+        internal Brush BackgroundMaskBrush { get; set; }
 
 
         private const double PRECISION_TOLERANCE = 0.00000001;
@@ -1099,13 +1086,13 @@ namespace SharpMap
             newZoom = _mapViewportGuard.VerifyZoom(newZoom, newCenter);
 
             var changed = false;
-            //if (Math.Abs(newZoom - _zoom) > PRECISION_TOLERANCE)
+            if (Math.Abs(newZoom - _zoom) > PRECISION_TOLERANCE)
             {
                 _zoom = newZoom;
                 changed = true;
             }
 
-            //if (!newCenter.Equals2D(_center, PRECISION_TOLERANCE))
+            if (!newCenter.Equals2D(_center, PRECISION_TOLERANCE))
             {
                 _center = newCenter;
                 changed = true;
@@ -1209,10 +1196,6 @@ namespace SharpMap
         /// <summary>
         /// The view on this map has changed. Maybe the layers need to load new data, they need to be notified.
         /// </summary>
-        /// <param name="zoomFactor"></param>
-        /// <param name="center"></param>
-        /// <param name="view"></param>
-        /// <param name="extraView"></param>
         public void ViewChanged()
         {
             LoadDatas();
@@ -1223,10 +1206,7 @@ namespace SharpMap
         /// </summary>
         protected void OnMapViewChanged()
         {
-            if (MapViewOnChange != null)
-            {
-                MapViewOnChange();
-            }
+            MapViewOnChange?.Invoke();
         }
 
 

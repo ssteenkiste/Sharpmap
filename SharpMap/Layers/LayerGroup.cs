@@ -54,8 +54,8 @@ namespace SharpMap.Layers
         /// </summary>
         protected virtual void OnLayersChanged()
         {
-            EventHandler handler = LayersChanged;
-            if (handler != null) handler(this, EventArgs.Empty);
+            var handler = LayersChanged;
+            handler?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -68,8 +68,7 @@ namespace SharpMap.Layers
         /// </summary>
         protected virtual void OnLayersChanging()
         {
-            EventHandler handler = LayersChanging;
-            if (handler != null) handler(this, EventArgs.Empty);
+            LayersChanging?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

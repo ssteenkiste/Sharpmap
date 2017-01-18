@@ -246,7 +246,7 @@
     <Compile Include="Rendering\LayerRenderingEventArgs.cs" />
     <Compile Include="Rendering\IMapRenderer.cs" />
     <Compile Include="Rendering\GraphicsMapRenderer.cs" />
-    <Compile Include="Rendering\MapRenderingResult.cs" />
+    <Compile Include="Rendering\MapRendererBase.cs" />
     <Compile Include="Rendering\Thematics\FontSizeTheme.cs" />
     <Compile Include="Rendering\VisibleLayersIterator.cs" />
     <Compile Include="Styles\VisibilityUnits.cs" />

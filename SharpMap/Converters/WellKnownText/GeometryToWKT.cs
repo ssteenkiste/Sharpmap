@@ -77,7 +77,7 @@ namespace SharpMap.Converters.WellKnownText
         ///  Features Specification)</returns>
         public static string Write(IGeometry geometry)
         {
-            StringWriter sw = new StringWriter();
+            var sw = new StringWriter();
             Write(geometry, sw);
             return sw.ToString();
         }
@@ -93,7 +93,7 @@ namespace SharpMap.Converters.WellKnownText
         /// </remarks>
         public static void Write(IGeometry geometry, StringWriter writer)
         {
-            WKTWriter wkt = new WKTWriter();
+            var wkt = new WKTWriter();
             wkt.Write(geometry, writer);
             //AppendGeometryTaggedText(geometry, writer);
         }
@@ -242,11 +242,11 @@ namespace SharpMap.Converters.WellKnownText
             writer.Write(WriteNumber(coordinate[Ordinate.X]));
             writer.Write(' ');
             writer.Write(WriteNumber(coordinate[Ordinate.Y]));
-            if (!double.IsNaN(coordinate.Z))
-            {
-                writer.Write(' ');
-                writer.Write(WriteNumber(coordinate[Ordinate.Y]));
-            }
+            //if (!double.IsNaN(coordinate.Z))
+            //{
+            //    writer.Write(' ');
+            //    writer.Write(WriteNumber(coordinate[Ordinate.Z]));
+            //}
         }
 
         /// <summary>
@@ -273,7 +273,7 @@ namespace SharpMap.Converters.WellKnownText
             {
                 var vertices = lineString.Coordinates;
                 writer.Write("(");
-                for (int i = 0; i < vertices.Length; i++)
+                for (var i = 0; i < vertices.Length; i++)
                 {
                     if (i > 0)
                         writer.Write(", ");
@@ -368,7 +368,7 @@ namespace SharpMap.Converters.WellKnownText
             else
             {
                 writer.Write("(");
-                for (int i = 0; i < multiPolygon.NumGeometries; i++)
+                for (var i = 0; i < multiPolygon.NumGeometries; i++)
                 {
                     if (i > 0)
                         writer.Write(", ");

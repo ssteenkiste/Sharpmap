@@ -8,26 +8,19 @@ namespace SharpMap.Data.Providers.OracleSpatial.Sdo
     public abstract class OracleCustomTypeBase<T> : INullable, IOracleCustomType, IOracleCustomTypeFactory
     where T : OracleCustomTypeBase<T>, new()
     {
-        private static string errorMessageHead = "Error converting Oracle User Defined Type to .Net Type " + typeof(T) + ", oracle column is null, failed to map to . NET valuetype, column ";
+        private static readonly string ErrorMessageHead = "Error converting Oracle User Defined Type to .Net Type " + typeof(T) + ", oracle column is null, failed to map to . NET valuetype, column ";
         [NonSerialized]
         private OracleConnection _connection;
         private IntPtr _pUdt;
         private bool _isNull;
 
-        public virtual bool IsNull
-        {
-            get
-            {
-                return _isNull;
-            }
-        }
+        public virtual bool IsNull => _isNull;
 
         public static T Null
         {
             get
             {
-                var t = new T();
-                t._isNull = true;
+                var t = new T {_isNull = true};
                 return t;
             }
         }
@@ -78,7 +71,7 @@ namespace SharpMap.Data.Providers.OracleSpatial.Sdo
             {
                 if (default(U) is ValueType)
                 {
-                    throw new Exception(errorMessageHead + oracleColumnName + " of value type " + typeof(U));
+                    throw new Exception(ErrorMessageHead + oracleColumnName + " of value type " + typeof(U));
                 }
                 return default(U);
             }
@@ -91,7 +84,7 @@ namespace SharpMap.Data.Providers.OracleSpatial.Sdo
             {
                 if (default(U) is ValueType)
                 {
-                    throw new Exception(errorMessageHead + oracleColumnId + " of value type " + typeof(U));
+                    throw new Exception(ErrorMessageHead + oracleColumnId + " of value type " + typeof(U));
                 }
                 return default(U);
             }

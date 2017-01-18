@@ -60,11 +60,11 @@ namespace SharpMap.Converters.WellKnownText.IO
     internal class StreamTokenizer
     {
         private int _colNumber = 1;
-        private StringBuilder _currentToken;
+        private readonly StringBuilder _currentToken;
         private TokenType _currentTokenType;
-        private bool _ignoreWhitespace = false;
+        private readonly bool _ignoreWhitespace = false;
         private int _lineNumber = 1;
-        private TextReader _reader;
+        private readonly TextReader _reader;
 
         #region Constructors
 
@@ -77,7 +77,7 @@ namespace SharpMap.Converters.WellKnownText.IO
         {
             if (reader == null)
             {
-                throw new ArgumentNullException("reader");
+                throw new ArgumentNullException(nameof(reader));
             }
             _reader = reader;
             _ignoreWhitespace = ignoreWhitespace;
@@ -91,18 +91,12 @@ namespace SharpMap.Converters.WellKnownText.IO
         /// <summary>
         /// The current line number of the stream being read.
         /// </summary>
-        public int LineNumber
-        {
-            get { return _lineNumber; }
-        }
+        public int LineNumber => _lineNumber;
 
         /// <summary>
         /// The current column number of the stream being read.
         /// </summary>
-        public int Column
-        {
-            get { return _colNumber; }
-        }
+        public int Column => _colNumber;
 
         #endregion Properties
 
@@ -117,12 +111,12 @@ namespace SharpMap.Converters.WellKnownText.IO
         /// <exception cref="FormatException">Current token is not a number in a valid format.</exception>
         public double GetNumericValue()
         {
-            string number = GetStringValue();
+            var number = GetStringValue();
             if (GetTokenType() == TokenType.Number)
             {
                 return double.Parse(number, Map.NumberFormatEnUs);
             }
-            throw new Exception(String.Format(Map.NumberFormatEnUs,
+            throw new Exception(string.Format(Map.NumberFormatEnUs,
                                               "The token '{0}' is not a number at line {1} column {2}.", number,
                                               LineNumber, Column));
             ;
@@ -152,15 +146,7 @@ namespace SharpMap.Converters.WellKnownText.IO
         /// <returns>The TokenType of the next token.</returns>
         public TokenType NextToken(bool ignoreWhitespace)
         {
-            TokenType nextTokenType;
-            if (ignoreWhitespace)
-            {
-                nextTokenType = NextNonWhitespaceToken();
-            }
-            else
-            {
-                nextTokenType = NextTokenAny();
-            }
+            var nextTokenType = ignoreWhitespace ? NextNonWhitespaceToken() : NextTokenAny();
             return nextTokenType;
         }
 
@@ -175,23 +161,20 @@ namespace SharpMap.Converters.WellKnownText.IO
 
         private TokenType NextTokenAny()
         {
-            TokenType nextTokenType = TokenType.Eof;
-            char[] chars = new char[1];
+            var chars = new char[1];
             //_currentToken.Clear();
             _currentToken.Length = 0;
             _currentTokenType = TokenType.Eof;
-            int finished = _reader.Read(chars, 0, 1);
+            var finished = _reader.Read(chars, 0, 1);
 
-            bool isNumber = false;
-            bool isWord = false;
-            Char currentCharacter;
-            Char nextCharacter;
+            var isNumber = false;
+            var isWord = false;
             while (finished != 0)
             {
-                currentCharacter = chars[0];
-                nextCharacter = (char)_reader.Peek();
+                var currentCharacter = chars[0];
+                var nextCharacter = (char)_reader.Peek();
                 _currentTokenType = GetType(currentCharacter);
-                nextTokenType = GetType(nextCharacter);
+                var nextTokenType = GetType(nextCharacter);
 
                 // handling of words with _
                 if (isWord && currentCharacter == '_')
@@ -312,7 +295,7 @@ namespace SharpMap.Converters.WellKnownText.IO
         /// <returns></returns>
         private TokenType NextNonWhitespaceToken()
         {
-            TokenType tokentype = NextTokenAny();
+            var tokentype = NextTokenAny();
             while (tokentype == TokenType.Whitespace || tokentype == TokenType.Eol)
             {
                 tokentype = NextTokenAny();

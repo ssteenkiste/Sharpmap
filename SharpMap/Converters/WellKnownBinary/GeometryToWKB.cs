@@ -90,10 +90,10 @@ namespace SharpMap.Converters.WellKnownBinary
                     order = ByteOrder.LittleEndian;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException("wkbByteOrder");
+                    throw new ArgumentOutOfRangeException(nameof(wkbByteOrder));
             }
 
-            WKBWriter wkb = new WKBWriter(order);
+            var wkb = new WKBWriter(order);
             return wkb.Write(g);
 
             /*
@@ -123,7 +123,7 @@ namespace SharpMap.Converters.WellKnownBinary
         {
             if (byteOrder == WkbByteOrder.Xdr)
             {
-                byte[] bytes = BitConverter.GetBytes(value);
+                var bytes = BitConverter.GetBytes(value);
                 Array.Reverse(bytes);
                 writer.Write(BitConverter.ToUInt32(bytes, 0));
             }
@@ -141,7 +141,7 @@ namespace SharpMap.Converters.WellKnownBinary
         {
             if (byteOrder == WkbByteOrder.Xdr)
             {
-                byte[] bytes = BitConverter.GetBytes(value);
+                var bytes = BitConverter.GetBytes(value);
                 Array.Reverse(bytes);
                 writer.Write(BitConverter.ToDouble(bytes, 0));
             }
@@ -303,7 +303,7 @@ namespace SharpMap.Converters.WellKnownBinary
             WriteLineString(poly.ExteriorRing, bWriter, byteorder);
 
             //Loop on the number of rings - 1 because we already wrote the shell.
-            foreach (ILinearRing lr in poly.InteriorRings)
+            foreach (var lr in poly.InteriorRings)
                 //Write the (lineString)LinearRing.
                 WriteLineString(lr, bWriter, byteorder);
         }
@@ -341,15 +341,15 @@ namespace SharpMap.Converters.WellKnownBinary
         private static void WriteMultiLineString(IMultiLineString mls, BinaryWriter bWriter, WkbByteOrder byteorder)
         {
             //Write the number of linestrings.
-            int num = mls.NumGeometries;
+            var num = mls.NumGeometries;
             WriteUInt32((uint) num, bWriter, byteorder);
 
             //Loop on the number of linestrings. 
             //NOTE: by contract, the first item returned 
             //      from GetEnumerator (i.e. using foreach) is the IMultiLineString itself!
-            for (int i = 0; i < num; i++)
+            for (var i = 0; i < num; i++)
             {
-                ILineString ls = (ILineString) mls.GetGeometryN(i);
+                var ls = (ILineString) mls.GetGeometryN(i);
                 //Write LineString Header
                 bWriter.Write((byte)byteorder);
                 WriteUInt32((uint)WKBGeometryType.wkbLineString, bWriter, byteorder);
@@ -367,15 +367,15 @@ namespace SharpMap.Converters.WellKnownBinary
         private static void WriteMultiPolygon(IMultiPolygon mp, BinaryWriter bWriter, WkbByteOrder byteorder)
         {
             //Write the number of polygons.
-            int num = mp.NumGeometries;
+            var num = mp.NumGeometries;
             WriteUInt32((uint) num, bWriter, byteorder);
 
             //Loop on the number of polygons.
             //NOTE: by contract, the first item returned 
             //      from GetEnumerator (i.e. using foreach) is the IMultiPolygon itself!
-            for (int i = 0; i < num; i++)
+            for (var i = 0; i < num; i++)
             {
-                IPolygon poly = (IPolygon) mp.GetGeometryN(i);
+                var poly = (IPolygon) mp.GetGeometryN(i);
                 //Write polygon header
                 bWriter.Write((byte) byteorder);
                 WriteUInt32((uint) WKBGeometryType.wkbPolygon, bWriter, byteorder);
@@ -404,7 +404,7 @@ namespace SharpMap.Converters.WellKnownBinary
             //      from GetEnumerator (i.e. using foreach) is the IGeometryCollection itself!
             for (var i = 0; i < num; i++)
             {
-                IGeometry geom = gc.GetGeometryN(i);
+                var geom = gc.GetGeometryN(i);
                 //Write the byte-order format of the following geometry.
                 bWriter.Write((byte) byteorder);
                 //Write the type of each geometry.                

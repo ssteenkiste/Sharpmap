@@ -91,7 +91,7 @@ namespace SharpMap.Converters.WellKnownText
         /// An exception will be thrown if there is a parsing problem.</returns>
         public static IGeometry Parse(TextReader reader)
         {
-            WKTReader wkt = new WKTReader();
+            var wkt = new WKTReader();
             return wkt.Read(reader);
             /*
             var tokenizer = new WktStreamTokenizer(reader);
@@ -110,13 +110,15 @@ namespace SharpMap.Converters.WellKnownText
         private static Coordinate[] GetCoordinates(WktStreamTokenizer tokenizer)
         {
             var coordinates = new List<Coordinate>();
-            string nextToken = GetNextEmptyOrOpener(tokenizer);
+            var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken == "EMPTY")
                 return coordinates.ToArray();
 
-            var externalCoordinate = new Coordinate();
-            externalCoordinate.X = GetNextNumber(tokenizer);
-            externalCoordinate.Y = GetNextNumber(tokenizer);
+            var externalCoordinate = new Coordinate
+            {
+                X = GetNextNumber(tokenizer),
+                Y = GetNextNumber(tokenizer)
+            };
             coordinates.Add(externalCoordinate);
             nextToken = GetNextCloserOrComma(tokenizer);
             while (nextToken == ",")
@@ -157,7 +159,7 @@ namespace SharpMap.Converters.WellKnownText
         private static string GetNextEmptyOrOpener(WktStreamTokenizer tokenizer)
         {
             tokenizer.NextToken();
-            string nextWord = tokenizer.GetStringValue();
+            var nextWord = tokenizer.GetStringValue();
             if (nextWord == "EMPTY" || nextWord == "(")
                 return nextWord;
 
@@ -176,7 +178,7 @@ namespace SharpMap.Converters.WellKnownText
         private static string GetNextCloserOrComma(WktStreamTokenizer tokenizer)
         {
             tokenizer.NextToken();
-            string nextWord = tokenizer.GetStringValue();
+            var nextWord = tokenizer.GetStringValue();
             if (nextWord == "," || nextWord == ")")
             {
                 return nextWord;
@@ -195,7 +197,7 @@ namespace SharpMap.Converters.WellKnownText
         /// </remarks>
         private static string GetNextCloser(WktStreamTokenizer tokenizer)
         {
-            string nextWord = GetNextWord(tokenizer);
+            var nextWord = GetNextWord(tokenizer);
             if (nextWord == ")")
                 return nextWord;
 
@@ -213,8 +215,8 @@ namespace SharpMap.Converters.WellKnownText
         /// </remarks>
         private static string GetNextWord(WktStreamTokenizer tokenizer)
         {
-            TokenType type = tokenizer.NextToken();
-            string token = tokenizer.GetStringValue();
+            var type = tokenizer.NextToken();
+            var token = tokenizer.GetStringValue();
             if (type == TokenType.Number)
                 throw new Exception("Expected a number but got " + token);
             if (type == TokenType.Word)
@@ -289,7 +291,7 @@ namespace SharpMap.Converters.WellKnownText
         private static IMultiPolygon ReadMultiPolygonText(WktStreamTokenizer tokenizer, IGeometryFactory factory)
         {
             var polygons = new List<IPolygon>();
-            string nextToken = GetNextEmptyOrOpener(tokenizer);
+            var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken == "EMPTY")
                 return factory.CreateMultiPolygon(polygons.ToArray());
 
@@ -320,7 +322,7 @@ namespace SharpMap.Converters.WellKnownText
         ///  </remarks>
         private static IPolygon ReadPolygonText(WktStreamTokenizer tokenizer, IGeometryFactory factory)
         {
-            string nextToken = GetNextEmptyOrOpener(tokenizer);
+            var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken == "EMPTY")
                 return factory.CreatePolygon(null, null);
 
@@ -373,7 +375,7 @@ namespace SharpMap.Converters.WellKnownText
         /// </remarks>
         private static IMultiPoint ReadMultiPointText(WktStreamTokenizer tokenizer, IGeometryFactory factory)
         {
-            string nextToken = GetNextEmptyOrOpener(tokenizer);
+            var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken == "EMPTY")
                 return factory.CreateMultiPoint((Coordinate[])null);
 
@@ -396,12 +398,11 @@ namespace SharpMap.Converters.WellKnownText
         /// <returns>a <see cref="MultiLineString"/> specified by the next token in the stream</returns>
         private static IMultiLineString ReadMultiLineStringText(WktStreamTokenizer tokenizer, IGeometryFactory factory)
         {
-            string nextToken = GetNextEmptyOrOpener(tokenizer);
+            var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken == "EMPTY")
                 return factory.CreateMultiLineString(null);
 
-            var lineStrings = new List<ILineString>();
-            lineStrings.Add(ReadLineStringText(tokenizer, factory));
+            var lineStrings = new List<ILineString> {ReadLineStringText(tokenizer, factory)};
             nextToken = GetNextCloserOrComma(tokenizer);
             while (nextToken == ",")
             {
@@ -439,8 +440,7 @@ namespace SharpMap.Converters.WellKnownText
             var nextToken = GetNextEmptyOrOpener(tokenizer);
             if (nextToken.Equals("EMPTY"))
                 return factory.CreateGeometryCollection(null);
-            var geometries = new List<IGeometry>();
-            geometries.Add(ReadGeometryTaggedText(tokenizer));
+            var geometries = new List<IGeometry> {ReadGeometryTaggedText(tokenizer)};
             nextToken = GetNextCloserOrComma(tokenizer);
             while (nextToken.Equals(","))
             {
