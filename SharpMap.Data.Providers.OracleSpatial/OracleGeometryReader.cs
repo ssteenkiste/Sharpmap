@@ -8,11 +8,18 @@ using SharpMap.Data.Providers.OracleSpatial.Sdo;
 
 namespace SharpMap.Data.Providers.OracleSpatial
 {
+
+    /// <summary>
+    /// Oracle geometry reader.
+    /// </summary>
     public class OracleGeometryReader
     {
         private const int NULL_DIMENSION = -1;
         private const int SRID_NULL = -1;
 
+        /// <summary>
+        /// Initialize a new instance of <see cref="OracleGeometryReader"/>. 
+        /// </summary>
         public OracleGeometryReader()
             : this(GeometryFactory.Default)
         { }
@@ -30,6 +37,9 @@ namespace SharpMap.Data.Providers.OracleSpatial
 
         private int _dimension = -1;
 
+        /// <summary>
+        /// Gets or sets the dimension.
+        /// </summary>
         public int Dimension
         {
             get { return _dimension; }
@@ -184,10 +194,10 @@ namespace SharpMap.Data.Providers.OracleSpatial
                 switch (len)
                 {
                     case 2:
-                        pts.Add(new Coordinate((Double)ordinates[offset], (Double)ordinates[offset + 1], Double.NaN));
+                        pts.Add(new Coordinate((double)ordinates[offset], (double)ordinates[offset + 1], double.NaN));
                         break;
                     case 3:
-                        pts.Add(new Coordinate((Double)ordinates[offset], (Double)ordinates[offset + 1],
+                        pts.Add(new Coordinate((double)ordinates[offset], (double)ordinates[offset + 1],
                                                (double)ordinates[offset + 2]));
                         break;
                 }
