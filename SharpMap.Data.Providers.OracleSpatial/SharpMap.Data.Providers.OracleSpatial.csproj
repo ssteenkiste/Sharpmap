@@ -54,11 +54,9 @@
       <HintPath>..\packages\NetTopologySuite.1.14\lib\net40-client\NetTopologySuite.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Oracle.DataAccess">
-      <HintPath>..\packages\odp.net.x86.112.3.20\lib\net40\Oracle.DataAccess.dll</HintPath>
-    </Reference>
-    <Reference Include="Oracle.Web">
-      <HintPath>..\packages\odac.client.x86.1.112.3.20\lib\net40\Oracle.Web.dll</HintPath>
+    <Reference Include="Oracle.DataAccess, Version=4.112.3.0, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ExternalReferences\Oracle\Oracle.DataAccess.dll</HintPath>
     </Reference>
     <Reference Include="PowerCollections, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2573bf8a1bdddcd5, processorArchitecture=MSIL">
       <HintPath>..\packages\NetTopologySuite.1.14\lib\net40-client\PowerCollections.dll</HintPath>
@@ -86,20 +84,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Packages\odac.client.x86.1.112.3.20\instantclient\oci.dll">
-      <Link>oci.dll</Link>
-    </None>
-    <None Include="..\Packages\odac.client.x86.1.112.3.20\instantclient\orannzsbb11.dll">
-      <Link>orannzsbb11.dll</Link>
-    </None>
-    <None Include="..\Packages\odac.client.x86.1.112.3.20\instantclient\oraociicus11.dll">
-      <Link>oraociicus11.dll</Link>
-    </None>
-    <None Include="..\Packages\odac.client.x86.1.112.3.20\odp\net40\OraOps11w.dll">
-      <Link>OraOps11w.dll</Link>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SharpMap\SharpMap.csproj">
